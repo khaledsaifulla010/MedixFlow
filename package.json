@@ -9,16 +9,35 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@prisma/client": "^6.13.0",
+    "@reduxjs/toolkit": "^2.8.2",
+    "axios": "^1.11.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "lucide-react": "^0.539.0",
+    "next": "15.4.6",
+    "nodemailer": "^7.0.5",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "next": "15.4.6"
+    "react-redux": "^9.2.0",
+    "react-toastify": "^11.0.5",
+    "tailwind-merge": "^3.3.1",
+    "twilio": "^5.8.0"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@tailwindcss/postcss": "^4",
+    "@types/axios": "^0.9.36",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
+    "@types/nodemailer": "^6.4.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4"
+    "@types/react-redux": "^7.1.34",
+    "@types/react-toastify": "^4.0.2",
+    "prisma": "^6.13.0",
+    "tailwindcss": "^4",
+    "tw-animate-css": "^1.3.6",
+    "typescript": "^5"
   }
 }
