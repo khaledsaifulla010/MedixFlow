@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
-import LogoutButton from "@/components/authComponents/LogoutButton";
 import { ModeToggle } from "@/components/ModeToggle";
 import { useRouter } from "next/navigation";
 interface User {
@@ -61,13 +60,10 @@ const AdminDashboard = () => {
   }, []);
 
   return (
-    <div className="mt-12 px-8">
+    <div className="mt-4 px-8">
       <div className="flex items-center justify-between">
         <h1 className="font-bold text-3xl">Welcome to Admin Dashboard</h1>
-        <div className="flex items-center gap-8">
           <ModeToggle />
-          <LogoutButton />
-        </div>
       </div>
 
       {user && (

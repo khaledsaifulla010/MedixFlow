@@ -2,6 +2,9 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  phone?: string;
+  dob?: string;
+  role: "admin" | "doctor" | "patient";
 }
 
 export interface AuthResponse {

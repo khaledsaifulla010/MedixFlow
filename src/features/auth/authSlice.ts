@@ -7,7 +7,12 @@ interface AuthState {
   refreshToken: string | null;
 }
 
-const initialState: AuthState = {
+// Load from localStorage if available
+const storedAuth =
+  typeof window !== "undefined" ? localStorage.getItem("auth") : null;
+const parsedAuth = storedAuth ? JSON.parse(storedAuth) : null;
+
+const initialState: AuthState = parsedAuth || {
   user: null,
   accessToken: null,
   refreshToken: null,
@@ -28,12 +33,22 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
+
+      // Save to localStorage
+      localStorage.setItem(
+        "auth",
+        JSON.stringify({
+          user: state.user,
+          accessToken: state.accessToken,
+          refreshToken: state.refreshToken,
+        })
+      );
     },
     logout: (state) => {
       state.user = null;
       state.accessToken = null;
       state.refreshToken = null;
-      localStorage.clear();
+      localStorage.removeItem("auth");
     },
   },
 });
