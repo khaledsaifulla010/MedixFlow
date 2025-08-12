@@ -23,3 +23,77 @@ model User {
   password  String
   createdAt DateTime @default(now())
 }
+
+
+enum BloodGroup {
+  A_Positive
+  A_Negitive
+  B_Positive
+  B_Negitive
+  AB_Positive
+  AB_Negitive
+  O_Positive
+  O_Negitive
+  Unknown
+}
+
+enum Gender {
+  Male
+  Female
+  Other
+  Unknown
+}
+
+enum MaritalStatus {
+  Single
+  Married
+  Divorced
+  Widowed
+  Unknown
+}
+
+enum SmokingStatus {
+  Smoker
+  Non_Smoker
+  Former_Smoker
+  Unknown
+}
+
+enum AlcoholConsumption {
+  None
+  Social
+  Regular
+  Unknown
+}
+
+enum Allergies {
+  Yes
+  No
+  Unknown
+}
+
+
+model Patient {
+  id                  String         @id @default(cuid())
+  user                User           @relation(fields: [userId], references: [id])
+  userId              String         @unique
+  address             String?
+  emergencyContactName String?
+  emergencyContactPhone String?
+  bloodGroup          BloodGroup     @default(UNKNOWN)
+  gender              Gender         @default(UNKNOWN)
+  medicalHistory      String?
+  allergies           Allergies   @default(UNKNOWN)
+  image               String?
+  nationality         String?
+  maritalStatus       MaritalStatus  @default(UNKNOWN)
+  occupation          String?
+  height              Float?
+  weight              Float?
+  smokingStatus       SmokingStatus  @default(UNKNOWN)
+  alcoholConsumption  AlcoholConsumption @default(UNKNOWN)
+  chronicDiseases     String?
+  preferredLanguage   String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+}
