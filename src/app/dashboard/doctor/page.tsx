@@ -2,6 +2,7 @@
 import LogoutButton from "@/components/authComponents/LogoutButton";
 import { ModeToggle } from "@/components/ModeToggle";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 interface User {
   id: string;
@@ -12,14 +13,31 @@ interface User {
   dob: string;
 }
 
+function isAxiosError(
+  error: unknown
+): error is { isAxiosError: boolean; response?: { status?: number } } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "isAxiosError" in error &&
+    (error as any).isAxiosError === true
+  );
+}
+
 const DoctorDashboard = () => {
+  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
 
   async function fetchUser() {
     try {
       const token = localStorage.getItem("accessToken");
       if (!token) {
-        console.warn("No access token found");
+        router.push("/login");
+        return;
+      }
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (!refreshToken) {
+        router.push("/login");
         return;
       }
 
@@ -31,7 +49,11 @@ const DoctorDashboard = () => {
 
       setUser(res.data);
     } catch (error) {
-      console.error("Failed to fetch user:", error);
+      if (isAxiosError(error) && error.response?.status === 401) {
+        router.push("/login");
+      } else {
+        console.error("Failed to fetch user:", error);
+      }
     }
   }
   useEffect(() => {
