@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import jwt from "jsonwebtoken";
@@ -11,53 +10,41 @@ const rolePaths: Record<string, string> = {
   patient: "/dashboard/patient",
 };
 
+const publicPaths = ["/login", "/register", "/api/auth/login", "/api/auth/register"];
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-
-  // Public paths don't need auth
-  const publicPaths = [
-    "/login",
-    "/register",
-    "/api/auth/login",
-    "/api/auth/register",
-  ];
   if (publicPaths.some((path) => pathname.startsWith(path))) {
     return NextResponse.next();
   }
 
-  // Get JWT token from cookie
-  const token = req.cookies.get("accessToken")?.value;
+  // Protect dashboard routes
+  if (pathname.startsWith("/dashboard")) {
+    const token = req.cookies.get("accessToken")?.value;
 
-  if (!token) {
-    const loginUrl = new URL("/login", req.url);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  try {
-    const payload = jwt.verify(token, SECRET) as { id: string; role: string };
-
-    const isDashboardPath = pathname.startsWith("/dashboard");
-
-    if (isDashboardPath) {
-      const allowedPath = rolePaths[payload.role];
-      if (!allowedPath) {
-        // Unknown role - redirect to login
-        return NextResponse.redirect(new URL("/login", req.url));
-      }
-
-      if (!pathname.startsWith(allowedPath)) {
-        // Redirect to correct dashboard
-        return NextResponse.redirect(new URL(allowedPath, req.url));
-      }
+    if (!token) {
+      return NextResponse.redirect(new URL("/login", req.url));
     }
 
-    return NextResponse.next();
-  } catch {
-    // Invalid or expired token
-    return NextResponse.redirect(new URL("/login", req.url));
+    try {
+      const payload = jwt.verify(token, SECRET) as { id: string; role: string };
+
+      const userRole = payload.role;
+      const allowedPath = rolePaths[userRole];
+      if (!allowedPath) {
+        return NextResponse.redirect(new URL("/login", req.url));
+      }
+      if (!pathname.startsWith(allowedPath)) {
+        return NextResponse.redirect(new URL(allowedPath, req.url));
+      }
+      return NextResponse.next();
+    } catch (err) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
   }
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/register"],
+  matcher: ["/dashboard/:path*", "/login", "/register", "/api/auth/:path*"],
 };
