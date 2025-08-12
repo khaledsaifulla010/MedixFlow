@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import axios from "axios";
-import { ModeToggle } from "@/components/ModeToggle";
 import { useRouter } from "next/navigation";
 interface User {
   id: string;
@@ -60,11 +59,8 @@ const AdminDashboard = () => {
   }, []);
 
   return (
-    <div className="mt-4 px-8">
-      <div className="flex items-center justify-between">
-        <h1 className="font-bold text-3xl">Welcome to Admin Dashboard</h1>
-          <ModeToggle />
-      </div>
+    <div className=" mt-6 px-4">
+      <h1 className="font-bold text-3xl">Welcome to Admin Dashboard</h1>
 
       {user && (
         <div className="mt-6">

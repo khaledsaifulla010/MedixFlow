@@ -13,32 +13,73 @@ import {
   MessageSquare,
   Users,
   Bell,
+  User2Icon,
+  CircleUser,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import LogoutButton from "../authComponents/LogoutButton";
 
-const menuConfig = {
-  admin: [
-    { name: "Dashboard", href: "/dashboard/admin", icon: LayoutDashboard },
-    { name: "Users", href: "/users", icon: Users },
-    { name: "Appointments", href: "/appointments", icon: Calendar },
-    { name: "Notifications", href: "/notifications", icon: Bell },
-  ],
-  doctor: [
-    { name: "Dashboard", href: "/dashboard/doctor", icon: LayoutDashboard },
-    { name: "Appointments", href: "/appointments", icon: Calendar },
-    { name: "Video Calls", href: "/video", icon: Video },
-    { name: "EHR Records", href: "/ehr", icon: FileText },
-    { name: "Messages", href: "/messages", icon: MessageSquare },
-  ],
-  patient: [
-    { name: "Dashboard", href: "/dashboard/patient", icon: LayoutDashboard },
-    { name: "Appointments", href: "/appointments", icon: Calendar },
-    { name: "Video Calls", href: "/video", icon: Video },
-    { name: "EHR Records", href: "/ehr", icon: FileText },
-    { name: "Messages", href: "/messages", icon: MessageSquare },
-  ],
+type MenuItem = {
+  name: string;
+  href: string;
+  icon: React.ElementType;
+};
+
+type MenuSections = {
+  MENU: MenuItem[];
+  MANAGE: MenuItem[];
+  SYSTEM: MenuItem[];
+};
+
+const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
+  admin: {
+    MENU: [
+      { name: "Dashboard", href: "/dashboard/admin", icon: LayoutDashboard },
+      {
+        name: "My Profile",
+        href: "/dashboard/admin/profile",
+        icon: CircleUser,
+      },
+    ],
+    MANAGE: [
+      { name: "Users", href: "/users", icon: Users },
+      { name: "Appointments", href: "/appointments", icon: Calendar },
+    ],
+    SYSTEM: [{ name: "Notifications", href: "/notifications", icon: Bell }],
+  },
+  doctor: {
+    MENU: [
+      { name: "Dashboard", href: "/dashboard/doctor", icon: LayoutDashboard },
+      {
+        name: "My Profile",
+        href: "/dashboard/doctor/profile",
+        icon: CircleUser,
+      },
+    ],
+    MANAGE: [
+      { name: "Appointments", href: "/appointments", icon: Calendar },
+      { name: "Video Calls", href: "/video", icon: Video },
+      { name: "EHR Records", href: "/ehr", icon: FileText },
+    ],
+    SYSTEM: [{ name: "Messages", href: "/messages", icon: MessageSquare }],
+  },
+  patient: {
+    MENU: [
+      { name: "Dashboard", href: "/dashboard/patient", icon: LayoutDashboard },
+      {
+        name: "My Profile",
+        href: "/dashboard/patient/profile",
+        icon: CircleUser,
+      },
+    ],
+    MANAGE: [
+      { name: "Appointments", href: "/appointments", icon: Calendar },
+      { name: "Video Calls", href: "/video", icon: Video },
+      { name: "EHR Records", href: "/ehr", icon: FileText },
+    ],
+    SYSTEM: [{ name: "Messages", href: "/messages", icon: MessageSquare }],
+  },
 };
 
 export default function Sidebar() {
@@ -55,20 +96,23 @@ export default function Sidebar() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
   useEffect(() => {
     if (mounted && !userRole) {
       router.push("/login");
     }
   }, [mounted, userRole, router]);
 
-  if (!mounted) {
-    return null;
-  }
+  if (!mounted) return null;
 
-  const menuItems = userRole ? menuConfig[userRole] || [] : [];
+  // If no userRole, set empty object to avoid errors
+  const menuGroups: Partial<MenuSections> = userRole
+    ? menuConfig[userRole]
+    : {};
 
   return (
     <aside className="w-64 h-screen bg-white dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-800 flex flex-col">
+      {/* Logo */}
       <div className="px-6 py-4 border-b-2 border-gray-200 dark:border-gray-800">
         <div className="flex flex-col items-center">
           <div className="block dark:hidden">
@@ -95,30 +139,42 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-2 mt-4">
-        {menuItems.map((item) => {
-          const Icon = item.icon;
-          const active = pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md font-bold transition-colors justify-center",
-                active
-                  ? "bg-blue-500 text-white"
-                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
-              )}
-            >
-              <Icon size={18} />
-              {item.name}
-            </Link>
-          );
-        })}
+      {/* Menu */}
+      <nav className="flex-1 p-4 space-y-4 mt-4">
+        {Object.entries(menuGroups).map(([section, items]) => (
+          <div key={section}>
+            <h2 className="text-xs font-semibold text-gray-400 uppercase mb-2">
+              {section}
+            </h2>
+            <div className="space-y-1">
+              {(items as MenuItem[]).map((item) => {
+                const Icon = item.icon;
+                const active = pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      active
+                        ? "bg-blue-500 text-white"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    )}
+                  >
+                    <Icon size={18} />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
-      <div className="mb-6 border-b-2 border-gray-200 dark:border-gray-800">
-        {" "}
-      </div>
+
+      {/* Divider */}
+      <div className="mb-6 border-b-2 border-gray-200 dark:border-gray-800"></div>
+
+      {/* Logout Button */}
       <div className="mb-4 px-4 flex items-center justify-center cursor-pointer">
         <LogoutButton />
       </div>

@@ -1,5 +1,4 @@
 "use client";
-import { ModeToggle } from "@/components/ModeToggle";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -59,11 +58,9 @@ const DoctorDashboard = () => {
     fetchUser();
   }, []);
   return (
-    <div className=" mt-12  px-8">
-      <div className="flex items-center justify-between">
-        <h1 className=" font-bold text-3xl">Welcome to Doctor Dashboard</h1>
-        <ModeToggle />
-      </div>
+    <div className=" mt-6 px-4">
+      <h1 className=" font-bold text-3xl">Welcome to Doctor Dashboard</h1>
+
       {user && (
         <div className="mt-6">
           <p>
