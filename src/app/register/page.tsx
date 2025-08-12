@@ -71,7 +71,7 @@ export default function RegisterPage() {
     const res = await dispatch(registerUser(values));
     if (res.success) {
       toast.success("Registration Successful.");
-      router.push(`/`);
+      router.push(`/login`);
     } else {
       toast.error("Registration failed!");
     }

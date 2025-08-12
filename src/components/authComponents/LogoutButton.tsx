@@ -13,7 +13,7 @@ export default function LogoutButton() {
     dispatch(logout());
     localStorage.clear();
     toast.success("Logout Successful.");
-    router.push("/register");
+    router.push("/login");
   };
 
   return (
