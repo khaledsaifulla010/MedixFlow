@@ -6,6 +6,11 @@ export default function Home() {
     <div>
       <h1 className="text-2xl">MedixFlow</h1>
       <ModeToggle/>
+
+      <div className="mt-12 ml-56">
+        
+
+      </div>
     </div>
   );
 }
