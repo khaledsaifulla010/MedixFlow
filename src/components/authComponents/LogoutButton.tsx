@@ -1,18 +1,17 @@
 "use client";
 
+import React from "react";
 import { useDispatch } from "react-redux";
-import { logout } from "@/features/auth/authSlice";
+import { AppDispatch } from "@/store/store";
+import { logoutUser } from "@/features/auth/authActions";
 import { useRouter } from "next/navigation";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+
 export default function LogoutButton() {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
 
-  const handleLogout = () => {
-    dispatch(logout());
-    localStorage.clear();
-    toast.success("Logout Successful.");
+  const handleLogout = async () => {
+    await dispatch(logoutUser());
     router.push("/login");
   };
 

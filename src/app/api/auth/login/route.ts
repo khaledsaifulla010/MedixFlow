@@ -34,25 +34,50 @@ export async function POST(req: Request) {
     const accessToken = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET!,
-      { expiresIn: "15m" }
+      {
+        expiresIn: "15m",
+      }
     );
 
     const refreshToken = jwt.sign(
       { id: user.id },
       process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: "7d" }
+      {
+        expiresIn: "7d",
+      }
     );
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
         role: user.role,
       },
-      accessToken,
-      refreshToken,
     });
+
+    // Set httpOnly cookies for tokens
+    response.cookies.set({
+      name: "accessToken",
+      value: accessToken,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 15, // 15 minutes
+      sameSite: "lax",
+    });
+
+    response.cookies.set({
+      name: "refreshToken",
+      value: refreshToken,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      sameSite: "lax",
+    });
+
+    return response;
   } catch (error) {
     console.error(error);
     return NextResponse.json({ message: "Server error" }, { status: 500 });

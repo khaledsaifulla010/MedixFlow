@@ -1,11 +1,13 @@
 import { AppDispatch } from "@/store/store";
-import { setCredentials } from "./authSlice";
+import { logout, setCredentials } from "./authSlice";
 import axiosInstance from "@/services/api";
 import { AuthResponse } from "@/types/auth";
 
 export const registerUser =
-  (userData: { name: string; email: string; password: string }) =>
-  async (dispatch: AppDispatch) => {
+  (userData: {  name: string; email: string; phone: string; dob: string; role: string; password: string  }) =>
+  async (
+    dispatch: AppDispatch
+  ): Promise<{ success: boolean; user?: any; message?: string }> => {
     try {
       const { data } = await axiosInstance.post<AuthResponse>(
         "/auth/register",
@@ -27,7 +29,7 @@ export const registerUser =
         })
       );
 
-      return { success: true };
+      return { success: true, user: data.user };
     } catch (err: any) {
       console.error("Registration error", err);
       return {
@@ -37,10 +39,11 @@ export const registerUser =
     }
   };
 
-
 export const loginUser =
   (userData: { email: string; password: string }) =>
-  async (dispatch: AppDispatch) => {
+  async (
+    dispatch: AppDispatch
+  ): Promise<{ success: boolean; user?: any; message?: string }> => {
     try {
       const { data } = await axiosInstance.post<AuthResponse>(
         "/auth/login",
@@ -62,7 +65,7 @@ export const loginUser =
         })
       );
 
-      return { success: true };
+      return { success: true, user: data.user };
     } catch (err: any) {
       console.error("Login error", err);
       return {
@@ -71,3 +74,16 @@ export const loginUser =
       };
     }
   };
+
+
+export const logoutUser = () => async (dispatch: AppDispatch) => {
+  try {
+    await axiosInstance.post("/auth/logout");
+
+    dispatch(logout());
+
+    delete axiosInstance.defaults.headers.common["Authorization"];
+  } catch (error) {
+    console.error("Logout failed:", error);
+  }
+};

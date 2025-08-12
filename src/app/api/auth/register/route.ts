@@ -14,7 +14,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!["Admin", "Doctor", "Patient"].includes(role)) {
+    if (!["admin", "doctor", "patient"].includes(role)) {
       return NextResponse.json({ message: "Invalid role" }, { status: 400 });
     }
 

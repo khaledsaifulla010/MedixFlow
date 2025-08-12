@@ -39,15 +39,16 @@ export default function LoginPage() {
     },
   });
 
-  const onSubmit = async (values: FormValues) => {
-    const res = await dispatch(loginUser(values));
-    if (res.success) {
-      toast.success("Login Successful.");
-      router.push(`/`);
-    } else {
-      toast.error(res.message || "Login failed!");
-    }
-  };
+const onSubmit = async (values: FormValues) => {
+  const res = await dispatch(loginUser(values));
+  if (res.success && res.user?.role) {
+    toast.success("Login Successful.");
+    router.push(`/dashboard/${res.user.role}`);
+  } else {
+    toast.error(res.message || "Login failed!");
+  }
+};
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
