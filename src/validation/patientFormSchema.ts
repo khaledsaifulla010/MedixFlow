@@ -47,7 +47,7 @@ export const patientFormSchema = z.object({
     .refine((val) => !!val, { message: "Marital status is required" }),
 
   occupation: z.string().min(1, "Occupation is required"),
-
+  age: z.number().min(0, "Age must be at least 0").max(150, "Age must be realistic"),
   height: z
     .number()
     .refine((val) => val !== undefined, { message: "Height is required" }),

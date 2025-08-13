@@ -82,6 +82,7 @@ model Patient {
   emergencyContactPhone String?
   bloodGroup          BloodGroup     @default(UNKNOWN)
   gender              Gender         @default(UNKNOWN)
+  age                 Float?
   medicalHistory      String?
   allergies           Allergies   @default(UNKNOWN)
   image               String?

@@ -43,13 +43,25 @@ interface User {
 
 export default function PatientDetailsForm() {
   const [user, setUser] = useState<User | null>(null);
+
+  function calculateAge(dob: string | Date): number {
+    if (!dob) return 0;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const m = today.getMonth() - birthDate.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age >= 0 ? age : 0;
+  }
   const form = useForm<PatientFormValues>({
     resolver: zodResolver(patientFormSchema),
     defaultValues: {
       name: "",
       email: "",
       phone: "",
-      dob: "",
+      age: 0,
       address: "",
       emergencyContactName: "",
       emergencyContactPhone: "",
@@ -68,11 +80,6 @@ export default function PatientDetailsForm() {
       preferredLanguage: "",
     },
   });
-
-  const [date, setDate] = useState<Date | undefined>(
-    form.getValues("dob") ? new Date(form.getValues("dob")) : undefined
-  );
-
   useEffect(() => {
     async function fetchUser() {
       try {
@@ -80,6 +87,7 @@ export default function PatientDetailsForm() {
         setUser(res.data);
         form.reset({
           ...res.data,
+          age: calculateAge(res.data.dob),
           address: "",
           emergencyContactName: "",
           emergencyContactPhone: "",
@@ -146,13 +154,13 @@ export default function PatientDetailsForm() {
           )}
         />
 
-        {/* Phone and DOB */}
-        <div className="flex space-x-4">
+        {/* Phone + AGE +DOB */}
+        <div className="flex justify-between">
           <FormField
             control={form.control}
             name="phone"
             render={({ field }) => (
-              <FormItem className="flex-1">
+              <FormItem className="w-2/5">
                 <FormLabel>Phone</FormLabel>
                 <FormControl>
                   <Input {...field} />
@@ -161,57 +169,55 @@ export default function PatientDetailsForm() {
               </FormItem>
             )}
           />
-
-          <FormField
-            control={form.control}
-            name="dob"
-            render={({ field }) => {
-              const currentDate = date;
-              const handleDateChange = (selectedDate: Date | undefined) => {
-                setDate(selectedDate);
-                field.onChange(selectedDate ? selectedDate.toISOString() : "");
-              };
-              return (
-                <FormItem className="flex-1">
-                  <FormLabel>
-                    Date of Birth{" "}
-                    <span className="text-red-600 font-bold -ml-1.5">*</span>
-                  </FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={`w-full pl-3 text-left font-normal ${
-                            !currentDate ? "text-muted-foreground" : ""
-                          }`}
-                        >
-                          {currentDate ? (
-                            format(currentDate, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={currentDate}
-                        onSelect={handleDateChange}
-                        disabled={(d) =>
-                          d > new Date() || d < new Date("1900-01-01")
-                        }
-                        captionLayout="dropdown"
-                      />
-                    </PopoverContent>
-                  </Popover>
+          <div className="flex items-center gap-8 ">
+            <FormField
+              control={form.control}
+              name="dob"
+              render={({ field }) => (
+                <FormItem className="w-1/2">
+                  <FormLabel>Date of Birth</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled
+                      {...field}
+                      value={
+                        field.value
+                          ? format(new Date(field.value), "dd MMMM yyyy")
+                          : ""
+                      }
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
-              );
-            }}
-          />
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="age"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormLabel>Age (Years)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Age"
+                      disabled
+                      value={field.value ?? ""}
+                      onChange={(e) =>
+                        field.onChange(
+                          e.target.value === ""
+                            ? undefined
+                            : parseInt(e.target.value, 10)
+                        )
+                      }
+                      min={0}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         {/* Address */}
