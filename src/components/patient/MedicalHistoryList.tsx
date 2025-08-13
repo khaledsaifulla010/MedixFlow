@@ -21,14 +21,13 @@ export default function MedicalHistoryList() {
 
   return (
     <div>
-      <h3>Medical History</h3>
+      <h3 className="text-3xl font-bold mb-4">Medical History</h3>
       <div className="grid grid-cols-2 ">
         {histories.map((history) => (
           <Card
             key={history.id}
             className="w-[550px] dark:bg-gray-900 border-2"
           >
-            
             <CardContent className="-mt-4">
               <table className="w-full text-sm text-left text-gray-700 dark:text-gray-300">
                 <tbody>

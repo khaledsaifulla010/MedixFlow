@@ -17,12 +17,17 @@ import { useGetUserDetails } from "@/hooks/useGetUserDetails";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 const schema = z.object({
-  allergies: z.string().optional(),
-  pastTreatments: z.string().optional(),
+  allergies: z.string().nonempty("Allergies field is required"),
+  pastTreatments: z.string().nonempty("Past treatments field is required"),
   files: z.any().optional(),
 });
+interface MedicalHistoryFormProps {
+  onClose?: () => void;
+}
 
-export default function MedicalHistoryForm() {
+export default function MedicalHistoryForm({
+  onClose,
+}: MedicalHistoryFormProps) {
   const { user } = useGetUserDetails();
   const form = useForm({
     resolver: zodResolver(schema),
@@ -70,63 +75,67 @@ export default function MedicalHistoryForm() {
   };
 
   return (
-    <div className="max-w-xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Medical History</h1>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="allergies"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Allergies</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., peanuts, dust" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+    <div className="max-w-xl mx-auto  border-2 rounded-md">
+      <h1 className="text-2xl font-bold  text-center p-4">
+        Medical History Details
+      </h1>
+      <p className="border-b-2 mb-6 mt-2 "></p>
+      <div className="p-6">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="allergies"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Allergies</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., peanuts, dust" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="pastTreatments"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Past Treatments</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Describe any past treatments..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="pastTreatments"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Past Treatments</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Describe any past treatments..."
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="files"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Upload Files</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="file"
+                      multiple
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => field.onChange(e.target.files)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="files"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Upload Files</FormLabel>
-                <FormControl>
-                  <Input
-                    type="file"
-                    multiple
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => field.onChange(e.target.files)}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button type="submit">Save Medical History</Button>
-        </form>
-      </Form>
+            <Button type="submit">Save Medical History</Button>
+          </form>
+        </Form>
+      </div>
     </div>
   );
 }
