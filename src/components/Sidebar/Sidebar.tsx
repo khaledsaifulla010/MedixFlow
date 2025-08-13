@@ -74,7 +74,11 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
       },
     ],
     MANAGE: [
-      { name: "Appointments", href: "/appointments", icon: Calendar },
+      {
+        name: "Appointments",
+        href: "/dashboard/patient/appointments",
+        icon: Calendar,
+      },
       { name: "Video Calls", href: "/video", icon: Video },
       {
         name: "Medical History",
