@@ -14,15 +14,43 @@ enum Role {
 }
 
 model User {
-  id             String          @id @default(cuid())
+  id             String           @id @default(cuid())
   name           String
-  email          String          @unique
+  email          String           @unique
   phone          String
   dob            DateTime
   role           Role
   password       String
-  createdAt      DateTime        @default(now())
-  patientProfile PatientProfile? @relation("UserPatientProfile")
+  createdAt      DateTime         @default(now())
+  
+  // Relations
+  doctorProfile  DoctorProfile?   @relation("UserDoctorProfile")
+  patientProfile PatientProfile?  @relation("UserPatientProfile")
+}
+
+model DoctorProfile {
+  id          String               @id @default(cuid())
+  userId      String               @unique
+  user        User                 @relation("UserDoctorProfile", fields: [userId], references: [id])
+  speciality  String
+  degree      String
+  createdAt   DateTime             @default(now())
+
+  // Relations
+  availabilities DoctorAvailability[]
+}
+
+model DoctorAvailability {
+  id          String        @id @default(cuid())
+  doctorId    String
+  isRecurring Boolean       @default(false) // true = recurring weekly, false = one-time
+  dayOfWeek   Int?          // 0 = Sunday, 1 = Monday, ..., 6 = Saturday (used if recurring)
+  date        String     // specific date for one-time availability
+  startTime   String      // start time (time portion matters)
+  endTime     String      // end time (time portion matters)
+  createdAt   DateTime      @default(now())
+
+  doctor      DoctorProfile @relation(fields: [doctorId], references: [id])
 }
 
 model PatientProfile {

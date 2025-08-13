@@ -153,7 +153,7 @@ export default function Sidebar() {
             <div className="space-y-1">
               {(items as MenuItem[]).map((item) => {
                 const Icon = item.icon;
-                const active = pathname.startsWith(item.href);
+                const active = pathname === item.href;
                 return (
                   <Link
                     key={item.name}
