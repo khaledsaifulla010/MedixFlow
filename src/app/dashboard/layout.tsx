@@ -9,7 +9,7 @@ export default function DashboardLayout({
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <div className="flex flex-col flex-1 bg-gray-50 dark:bg-gray-900">
+      <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-900 overflow-auto">
         <div className="px-4 mt-6">
           <Navbar />
         </div>

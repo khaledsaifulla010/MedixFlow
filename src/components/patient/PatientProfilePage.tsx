@@ -10,6 +10,7 @@ import {
   Cigarette,
   Droplets,
   Globe,
+  HeartPlus,
   House,
   Languages,
   Mail,
@@ -18,6 +19,7 @@ import {
   Phone,
   PhoneCall,
   Ruler,
+  User,
   UserCircle,
   Weight,
 } from "lucide-react";
@@ -90,7 +92,7 @@ const PatientProfilePage = () => {
                     </tr>
                     <tr className="border-b-2 dark:border-gray-700">
                       <td className="py-2 font-semibold flex items-center gap-2">
-                        <BriefcaseBusiness className="h-5" /> Job
+                        <BriefcaseBusiness className="h-5" /> Occupation
                       </td>
                       <td className="py-2">Software Engineer</td>
                     </tr>
@@ -152,6 +154,13 @@ const PatientProfilePage = () => {
                             <Cake className="h-5" /> Age
                           </td>
                           <td className="py-2">14 Years</td>
+                        </tr>
+                        <tr className="border-b dark:border-gray-700"></tr>
+                        <tr>
+                          <td className="py-2 flex items-center gap-2 font-semibold whitespace-nowrap">
+                            <HeartPlus className="h-5" /> Marital
+                          </td>
+                          <td className="py-2">Single</td>
                         </tr>
                       </tbody>
                     </table>
@@ -217,6 +226,94 @@ const PatientProfilePage = () => {
                 </div>
               </CardContent>
             </Card>
+          </div>
+
+          {/* ED */}
+          <div className="flex justify-between">
+            {/* Section: Emergency Contact */}
+            <Card className=" dark:bg-gray-900 border-2 w-[350px] h-[300px]">
+              <CardHeader>
+                <CardTitle className="text-3xl font-bold">
+                  Emergency Contact
+                </CardTitle>
+              </CardHeader>
+              <div className="border-b-2"></div>
+
+              <CardContent>
+                <div className="flex w-full gap-4">
+                  <div className="flex-1 border rounded-lg px-4 py-4 dark:border-gray-700 dark:bg-gray-800 flex flex-col">
+                    <h3 className="text-lg font-bold mb-4 text-center">
+                      Contact Details
+                    </h3>
+                    <table className="w-full text-sm text-gray-700 dark:text-gray-300">
+                      <tbody>
+                        <tr className="border-b dark:border-gray-700">
+                          <td className="py-2 flex items-center gap-2 font-semibold whitespace-nowrap">
+                            <User className="h-5" /> Name
+                          </td>
+                          <td className="py-2">Khaled Saifulla</td>
+                        </tr>
+                        <tr>
+                          <td className="py-2 flex items-center gap-2 font-semibold whitespace-nowrap">
+                            <Phone className="h-5" /> Phone
+                          </td>
+                          <td className="py-2">+8801311776857</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            {/* Medical History + Chronic Disease */}
+            <div>
+              <Card className=" dark:bg-gray-900 border-2 w-[800px]">
+                <CardHeader>
+                  <CardTitle className="text-3xl font-bold">
+                    Medical History
+                  </CardTitle>
+                </CardHeader>
+                <div className="border-b-2"></div>
+                <div className="flex justify-between">
+                  <div>
+                    <CardContent>
+                      <div className="flex w-[350px] gap-4 ">
+                        <div className="flex-1 border rounded-lg px-4 py-4 dark:border-gray-700 dark:bg-gray-800 flex flex-col">
+                          <h3 className="text-base font-bold">
+                            Medical History
+                          </h3>
+                          <p className="border-b-2 mt-1 mb-1"></p>
+                          <p className="text-justify text-sm leading-normal">
+                            I have mild asthma since childhood, seasonal
+                            allergies, and occasional migraines. I haven’t had
+                            any surgeries and take medications as prescribed. I
+                            attend regular check-ups to monitor my health.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </div>
+                  <div>
+                    <CardContent>
+                      <div className="flex w-[350px] gap-4 ">
+                        <div className="flex-1 border rounded-lg px-4 py-4 dark:border-gray-700 dark:bg-gray-800 flex flex-col">
+                          <h3 className="text-base font-bold">
+                            Chronic Disease
+                          </h3>
+                          <p className="border-b-2 mt-1 mb-1"></p>
+                          <p className="text-justify text-sm leading-normal">
+                            I have mild asthma since childhood, seasonal
+                            allergies, and occasional migraines. I haven’t had
+                            any surgeries and take medications as prescribed. I
+                            attend regular check-ups to monitor my health.
+                          </p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </div>
+                </div>
+              </Card>
+            </div>
           </div>
         </div>
       )}

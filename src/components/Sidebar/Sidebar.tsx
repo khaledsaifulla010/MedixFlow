@@ -105,13 +105,12 @@ export default function Sidebar() {
 
   if (!mounted) return null;
 
-  // If no userRole, set empty object to avoid errors
   const menuGroups: Partial<MenuSections> = userRole
     ? menuConfig[userRole]
     : {};
 
   return (
-    <aside className="w-64 h-screen bg-white dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-800 flex flex-col">
+    <aside className="w-64 h-screen sticky top-0 bg-white dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-800 flex flex-col">
       {/* Logo */}
       <div className="px-6 py-4 border-b-2 border-gray-200 dark:border-gray-800">
         <div className="flex flex-col items-center">
