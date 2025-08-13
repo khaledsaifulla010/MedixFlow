@@ -46,8 +46,8 @@ export const doctorApi = createApi({
     }),
 
     // GET: Doctor profile
-    getDoctorProfile: builder.query<any, string>({
-      query: (id) => `api/doctors/${id}`,
+    getDoctorProfile: builder.query<any, void>({
+      query: () => `api/doctor/me`,
     }),
   }),
 });

@@ -17,7 +17,6 @@ import {
   MarsStroke,
   NutOff,
   Phone,
-  PhoneCall,
   Ruler,
   User,
   UserCircle,
