@@ -13,8 +13,8 @@ import {
   MessageSquare,
   Users,
   Bell,
-  User2Icon,
   CircleUser,
+  FileClock,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -76,7 +76,12 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
     MANAGE: [
       { name: "Appointments", href: "/appointments", icon: Calendar },
       { name: "Video Calls", href: "/video", icon: Video },
-      { name: "EHR Records", href: "/ehr", icon: FileText },
+      {
+        name: "Medical History",
+        href: "/dashboard/patient/medical-history",
+        icon: FileClock,
+      },
+      { name: "Prescriptions", href: "/prescriptions", icon: FileText },
     ],
     SYSTEM: [{ name: "Messages", href: "/messages", icon: MessageSquare }],
   },

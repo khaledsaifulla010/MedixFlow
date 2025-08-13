@@ -1,14 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  phone: string;
-  dob: string;
-}
 
 function isAxiosError(
   error: unknown
