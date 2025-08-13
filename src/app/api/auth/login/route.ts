@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       { id: user.id, role: user.role },
       process.env.JWT_SECRET!,
       {
-        expiresIn: "15m",
+        expiresIn: "1d",
       }
     );
 
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 15, // 15 minutes
+      maxAge: 60 * 60 * 24 * 1,
       sameSite: "lax",
     });
 
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
       sameSite: "lax",
     });
 

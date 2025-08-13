@@ -23,7 +23,7 @@ export default function PatientModal({ isOpen, onClose }: PatientModalProps) {
     <>
       <div
         className="fixed top-0 left-0 h-full backdrop-blur-sm"
-        style={{ width: `calc(100vw - 800px)` }}
+        style={{ width: `calc(100vw - 900px)` }}
         onClick={onClose}
         aria-label="Close modal overlay"
       />
@@ -32,7 +32,7 @@ export default function PatientModal({ isOpen, onClose }: PatientModalProps) {
       <aside
         role="dialog"
         aria-modal="true"
-        className="fixed top-0 right-0 h-full w-[900px] bg-white dark:bg-gray-900 shadow-lg z-50 flex flex-col"
+        className="fixed top-0 right-0 h-full w-[1000px] bg-white dark:bg-gray-900 shadow-lg z-50 flex flex-col"
         style={{
           overflowY: "auto",
           WebkitOverflowScrolling: "touch",

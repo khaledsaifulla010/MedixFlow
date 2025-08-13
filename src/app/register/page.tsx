@@ -63,13 +63,12 @@ export default function RegisterPage() {
     },
   });
 
-  // Manage date state for datepicker UI
   const [date, setDate] = useState<Date | undefined>(
     form.getValues("dob") ? new Date(form.getValues("dob")) : undefined
   );
 
   const onSubmit = async (values: FormValues) => {
-    // Convert date to ISO string if user selected date picker
+
     if (date) {
       values.dob = date.toISOString();
     }

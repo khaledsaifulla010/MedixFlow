@@ -23,7 +23,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { patientFormSchema } from "@/validation/patientFormSchema";
 import axios from "axios";
-
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "../ui/calendar";
+import { format } from "date-fns";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 type PatientFormValues = z.infer<typeof patientFormSchema>;
 type Role = "admin" | "doctor" | "patient";
 
@@ -38,7 +43,6 @@ interface User {
 
 export default function PatientDetailsForm() {
   const [user, setUser] = useState<User | null>(null);
-
   const form = useForm<PatientFormValues>({
     resolver: zodResolver(patientFormSchema),
     defaultValues: {
@@ -46,7 +50,6 @@ export default function PatientDetailsForm() {
       email: "",
       phone: "",
       dob: "",
-      password: "",
       address: "",
       emergencyContactName: "",
       emergencyContactPhone: "",
@@ -66,6 +69,10 @@ export default function PatientDetailsForm() {
     },
   });
 
+  const [date, setDate] = useState<Date | undefined>(
+    form.getValues("dob") ? new Date(form.getValues("dob")) : undefined
+  );
+
   useEffect(() => {
     async function fetchUser() {
       try {
@@ -73,7 +80,6 @@ export default function PatientDetailsForm() {
         setUser(res.data);
         form.reset({
           ...res.data,
-          password: "",
           address: "",
           emergencyContactName: "",
           emergencyContactPhone: "",
@@ -91,9 +97,7 @@ export default function PatientDetailsForm() {
           chronicDiseases: "",
           preferredLanguage: "",
         });
-      } catch {
-        // Handle error if needed
-      }
+      } catch {}
     }
     fetchUser();
   }, []);
@@ -102,13 +106,15 @@ export default function PatientDetailsForm() {
 
   function onSubmit(data: PatientFormValues) {
     console.log("Form data:", data);
+    toast.success("Information Updated Successful.");
+    form.reset();
   }
 
   return (
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="space-y-6 max-w-3xl mx-auto p-4 border"
+        className="space-y-6 w-[900px] mx-auto p-4 border"
       >
         {/* Name */}
         <FormField
@@ -125,7 +131,7 @@ export default function PatientDetailsForm() {
           )}
         />
 
-        {/* Email (disabled) */}
+        {/* Email */}
         <FormField
           control={form.control}
           name="email"
@@ -134,21 +140,6 @@ export default function PatientDetailsForm() {
               <FormLabel>Email</FormLabel>
               <FormControl>
                 <Input {...field} disabled className="cursor-not-allowed" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        {/* Password */}
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input type="password" placeholder="Password" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -170,18 +161,56 @@ export default function PatientDetailsForm() {
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="dob"
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>Date of Birth</FormLabel>
-                <FormControl>
-                  <Input type="date" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            render={({ field }) => {
+              const currentDate = date;
+              const handleDateChange = (selectedDate: Date | undefined) => {
+                setDate(selectedDate);
+                field.onChange(selectedDate ? selectedDate.toISOString() : "");
+              };
+              return (
+                <FormItem className="flex-1">
+                  <FormLabel>
+                    Date of Birth{" "}
+                    <span className="text-red-600 font-bold -ml-1.5">*</span>
+                  </FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={`w-full pl-3 text-left font-normal ${
+                            !currentDate ? "text-muted-foreground" : ""
+                          }`}
+                        >
+                          {currentDate ? (
+                            format(currentDate, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={currentDate}
+                        onSelect={handleDateChange}
+                        disabled={(d) =>
+                          d > new Date() || d < new Date("1900-01-01")
+                        }
+                        captionLayout="dropdown"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
           />
         </div>
 
@@ -191,7 +220,9 @@ export default function PatientDetailsForm() {
           name="address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Address</FormLabel>
+              <FormLabel>
+                Address<span className="text-red-600 font-bold -ml-1.5">*</span>
+              </FormLabel>
               <FormControl>
                 <Textarea placeholder="Enter your address" {...field} />
               </FormControl>
@@ -220,7 +251,10 @@ export default function PatientDetailsForm() {
             name="occupation"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel>Occupation</FormLabel>
+                <FormLabel>
+                  Occupation
+                  <span className="text-red-600 font-bold -ml-1.5">*</span>
+                </FormLabel>
                 <FormControl>
                   <Input placeholder="Occupation" {...field} />
                 </FormControl>
@@ -237,7 +271,10 @@ export default function PatientDetailsForm() {
             name="nationality"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel>Nationality</FormLabel>
+                <FormLabel>
+                  Nationality
+                  <span className="text-red-600 font-bold -ml-1.5">*</span>
+                </FormLabel>
                 <FormControl>
                   <Input placeholder="Nationality" {...field} />
                 </FormControl>
@@ -250,7 +287,10 @@ export default function PatientDetailsForm() {
             name="preferredLanguage"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel>Preferred Language</FormLabel>
+                <FormLabel>
+                  Preferred Language
+                  <span className="text-red-600 font-bold -ml-1.5">*</span>
+                </FormLabel>
                 <FormControl>
                   <Input placeholder="Preferred Language" {...field} />
                 </FormControl>
@@ -267,7 +307,10 @@ export default function PatientDetailsForm() {
             name="emergencyContactName"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel>Emergency Contact Name</FormLabel>
+                <FormLabel>
+                  Emergency Contact Name
+                  <span className="text-red-600 font-bold -ml-1.5">*</span>
+                </FormLabel>
                 <FormControl>
                   <Input placeholder="Emergency contact name" {...field} />
                 </FormControl>
@@ -280,7 +323,10 @@ export default function PatientDetailsForm() {
             name="emergencyContactPhone"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel>Emergency Contact Phone</FormLabel>
+                <FormLabel>
+                  Emergency Contact Phone
+                  <span className="text-red-600 font-bold -ml-1.5">*</span>
+                </FormLabel>
                 <FormControl>
                   <Input placeholder="+8801XXXXXXXXX" {...field} />
                 </FormControl>
@@ -290,212 +336,244 @@ export default function PatientDetailsForm() {
           />
         </div>
 
-        {/* Blood Group and Allergies */}
-        <div className="flex space-x-4 gap-32">
-          <FormField
-            control={form.control}
-            name="bloodGroup"
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>Blood Group</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select blood group" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {[
-                      "A_Positive",
-                      "A_Negitive",
-                      "B_Positive",
-                      "B_Negitive",
-                      "AB_Positive",
-                      "AB_Negitive",
-                      "O_Positive",
-                      "O_Negitive",
-                      "Unknown",
-                    ].map((bg) => (
-                      <SelectItem key={bg} value={bg}>
-                        {bg.replace(/_/g, " ")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="allergies"
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>Allergies</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select allergies status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {["Yes", "No", "Unknown"].map((val) => (
-                      <SelectItem key={val} value={val}>
-                        {val}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* Gender and Marital Status */}
-        <div className="flex space-x-4 gap-32">
-          <FormField
-            control={form.control}
-            name="gender"
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>Gender</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {["Male", "Female", "Other", "Unknown"].map((g) => (
-                      <SelectItem key={g} value={g}>
-                        {g}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="maritalStatus"
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>Marital Status</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select marital status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {[
-                      "Single",
-                      "Married",
-                      "Divorced",
-                      "Widowed",
-                      "Unknown",
-                    ].map((val) => (
-                      <SelectItem key={val} value={val}>
-                        {val}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        {/* Smoking Status and Alcohol Consumption */}
-        <div className="flex space-x-4">
-          <FormField
-            control={form.control}
-            name="smokingStatus"
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>Smoking Status</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select smoking status" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {["Smoker", "Non_Smoker", "Former_Smoker", "Unknown"].map(
-                      (val) => (
-                        <SelectItem key={val} value={val}>
-                          {val.replace(/_/g, " ")}
+        <div className="flex justify-between gap-8">
+          {/* Blood Group + Gender + Marital Status */}
+          <div className="flex gap-6 flex-1">
+            <FormField
+              control={form.control}
+              name="bloodGroup"
+              render={({ field }) => (
+                <FormItem className="w-1/3">
+                  <FormLabel className="whitespace-nowrap">
+                    Blood Group{" "}
+                    <span className="text-red-600 font-bold">*</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select blood group" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {[
+                        "A_Positive",
+                        "A_Negitive",
+                        "B_Positive",
+                        "B_Negitive",
+                        "AB_Positive",
+                        "AB_Negitive",
+                        "O_Positive",
+                        "O_Negitive",
+                        "Unknown",
+                      ].map((bg) => (
+                        <SelectItem key={bg} value={bg}>
+                          {bg.replace(/_/g, " ")}
                         </SelectItem>
-                      )
-                    )}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="alcoholConsumption"
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>Alcohol Consumption</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select alcohol consumption" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {["None", "Social", "Regular", "Unknown"].map((val) => (
-                      <SelectItem key={val} value={val}>
-                        {val}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="gender"
+              render={({ field }) => (
+                <FormItem className="w-1/3">
+                  <FormLabel className="whitespace-nowrap">
+                    Gender <span className="text-red-600 font-bold">*</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {["Male", "Female", "Other", "Unknown"].map((g) => (
+                        <SelectItem key={g} value={g}>
+                          {g}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="maritalStatus"
+              render={({ field }) => (
+                <FormItem className="w-1/3">
+                  <FormLabel className="whitespace-nowrap">
+                    Marital Status{" "}
+                    <span className="text-red-600 font-bold">*</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select marital status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {[
+                        "Single",
+                        "Married",
+                        "Divorced",
+                        "Widowed",
+                        "Unknown",
+                      ].map((val) => (
+                        <SelectItem key={val} value={val}>
+                          {val}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          {/* Allergies + Smoking Status + Alcohol Status*/}
+          <div className="flex gap-6 flex-1">
+            <FormField
+              control={form.control}
+              name="allergies"
+              render={({ field }) => (
+                <FormItem className="w-1/3">
+                  <FormLabel className="whitespace-nowrap">
+                    Allergies <span className="text-red-600 font-bold">*</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select allergies status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {["Yes", "No", "Unknown"].map((val) => (
+                        <SelectItem key={val} value={val}>
+                          {val}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="smokingStatus"
+              render={({ field }) => (
+                <FormItem className="w-1/3">
+                  <FormLabel className="whitespace-nowrap">
+                    Smoking Status{" "}
+                    <span className="text-red-600 font-bold">*</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select smoking status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {["Smoker", "Non_Smoker", "Former_Smoker", "Unknown"].map(
+                        (val) => (
+                          <SelectItem key={val} value={val}>
+                            {val.replace(/_/g, " ")}
+                          </SelectItem>
+                        )
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="alcoholConsumption"
+              render={({ field }) => (
+                <FormItem className="w-1/3">
+                  <FormLabel className="whitespace-nowrap">
+                    Alcohol Status{" "}
+                    <span className="text-red-600 font-bold">*</span>
+                  </FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select alcohol status" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {["None", "Social", "Regular", "Unknown"].map((val) => (
+                        <SelectItem key={val} value={val}>
+                          {val}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
 
         {/* Height and Weight */}
-        <div className="flex space-x-4">
+        <div className="flex items-center gap-8">
           <FormField
             control={form.control}
             name="height"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel>Height (cm)</FormLabel>
+                <FormLabel>
+                  Height (cm)
+                  <span className="text-red-600 font-bold -ml-1.5">*</span>
+                </FormLabel>
                 <FormControl>
                   <Input
                     type="number"
                     placeholder="Height in cm"
-                    {...field}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    value={field.value ?? ""}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value === ""
+                          ? undefined
+                          : parseFloat(e.target.value)
+                      )
+                    }
                   />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
+
           <FormField
             control={form.control}
             name="weight"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel>Weight (kg)</FormLabel>
+                <FormLabel>
+                  Weight (kg)
+                  <span className="text-red-600 font-bold -ml-1.5">*</span>
+                </FormLabel>
                 <FormControl>
                   <Input
                     type="number"
                     placeholder="Weight in kg"
-                    {...field}
-                    onChange={(e) => field.onChange(parseFloat(e.target.value))}
+                    value={field.value ?? ""}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value === ""
+                          ? undefined
+                          : parseFloat(e.target.value)
+                      )
+                    }
                   />
                 </FormControl>
                 <FormMessage />
@@ -511,7 +589,10 @@ export default function PatientDetailsForm() {
             name="medicalHistory"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel>Medical History</FormLabel>
+                <FormLabel>
+                  Medical History
+                  <span className="text-red-600 font-bold -ml-1.5">*</span>
+                </FormLabel>
                 <FormControl>
                   <Textarea placeholder="Brief medical history" {...field} />
                 </FormControl>
@@ -524,7 +605,10 @@ export default function PatientDetailsForm() {
             name="chronicDiseases"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel>Chronic Diseases</FormLabel>
+                <FormLabel>
+                  Chronic Diseases
+                  <span className="text-red-600 font-bold -ml-1.5">*</span>
+                </FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="Describe chronic diseases"
