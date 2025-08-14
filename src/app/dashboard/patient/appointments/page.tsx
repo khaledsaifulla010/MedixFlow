@@ -49,6 +49,7 @@ interface ApiResponse {
 }
 
 const formatDate = (date: Date) => date.toISOString().split("T")[0];
+
 const timeStringToDate = (date: Date, time: string) => {
   const [h, m] = time.split(":").map(Number);
   const d = new Date(date);
@@ -65,8 +66,8 @@ export default function AppointmentPage() {
   const fetchData = async () => {
     try {
       const res = await axios.get<ApiResponse>("/api/patient/appointments");
-      setAppointments(res.data.appointments);
-      setAvailabilities(res.data.availabilities);
+      setAppointments(res.data.appointments ?? []);
+      setAvailabilities(res.data.availabilities ?? []);
     } catch {
       toast.error("Failed to fetch data");
     }
@@ -117,7 +118,7 @@ export default function AppointmentPage() {
     const e = info.event;
     try {
       await axios.post("/api/patient/appointments", {
-        doctorId: e.extendedProps.doctorId,
+        doctorId: e.extendedProps?.doctorId,
         startTime: e.start?.toISOString(),
         endTime: e.end?.toISOString(),
       });
@@ -131,7 +132,7 @@ export default function AppointmentPage() {
 
   const handleEventClick = (info: EventClickArg) => {
     const e = info.event;
-    const appointment = appointments.find(
+    const appointment = appointments?.find(
       (a) => `appointment-${a.id}` === e.id
     );
     if (!appointment) return;
@@ -158,7 +159,7 @@ export default function AppointmentPage() {
   };
 
   const calendarEvents = [
-    ...appointments.map((a) => ({
+    ...(appointments ?? []).map((a) => ({
       id: `appointment-${a.id}`,
       title: `${a.patient.user.name} → ${a.doctor.user.name}`,
       start: a.startTime,
@@ -167,27 +168,45 @@ export default function AppointmentPage() {
       textColor: "white",
       extendedProps: { doctorId: a.doctor.id },
     })),
-    ...availabilities.map((a) => {
-      const today = new Date();
-      const datePart = a.isRecurring
-        ? (() => {
-            const diff = (a.dayOfWeek ?? 0) - today.getDay();
-            const target = new Date(today);
-            target.setDate(today.getDate() + diff);
-            return formatDate(target);
-          })()
-        : a.date
-        ? formatDate(new Date(a.date))
-        : "";
-      return {
-        id: `availability-${a.id}`,
-        title: `${a.doctor.user.name} (${a.doctor.speciality})`,
-        start: `${datePart}T${a.startTime}`,
-        end: `${datePart}T${a.endTime}`,
-        color: "#22C55E",
-        textColor: "white",
-        extendedProps: { doctorId: a.doctor.id },
-      };
+    ...(availabilities ?? []).flatMap((a) => {
+      const events = [];
+
+      // Single-date availability
+      if (!a.isRecurring && a.date) {
+        const dateStr = formatDate(new Date(a.date));
+        events.push({
+          id: `availability-${a.id}`,
+          title: `${a.doctor.user.name} (${a.doctor.speciality})`,
+          start: `${dateStr}T${a.startTime}`,
+          end: `${dateStr}T${a.endTime}`,
+          color: "#22C55E",
+          textColor: "white",
+          extendedProps: { doctorId: a.doctor.id },
+        });
+      }
+
+      // Recurring availability: generate next 4 weeks for example
+      if (a.isRecurring && typeof a.dayOfWeek === "number") {
+        const today = new Date();
+        for (let i = 0; i < 28; i++) {
+          const d = new Date(today);
+          d.setDate(today.getDate() + i);
+          if (d.getDay() === a.dayOfWeek) {
+            const dateStr = formatDate(d);
+            events.push({
+              id: `availability-${a.id}-${dateStr}`,
+              title: `${a.doctor.user.name} (${a.doctor.speciality})`,
+              start: `${dateStr}T${a.startTime}`,
+              end: `${dateStr}T${a.endTime}`,
+              color: "#22C55E",
+              textColor: "white",
+              extendedProps: { doctorId: a.doctor.id },
+            });
+          }
+        }
+      }
+
+      return events;
     }),
   ];
 

@@ -60,43 +60,32 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
 export async function GET(req: NextRequest) {
   try {
-    // Get userId from query params
-    const url = new URL(req.url);
-    const userId = url.searchParams.get("userId");
-
+    const userId = req.nextUrl.searchParams.get("userId");
     if (!userId) {
-      return NextResponse.json(
-        { success: false, error: "userId is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, data: [] });
     }
 
-    // Find patient profile
-    const profile = await prisma.patientProfile.findUnique({
+    // 1️⃣ Find the patient's profile by userId
+    const patientProfile = await prisma.patientProfile.findUnique({
       where: { userId },
     });
 
-    if (!profile) {
-      return NextResponse.json(
-        { success: false, error: "Patient profile not found" },
-        { status: 404 }
-      );
+    if (!patientProfile) {
+      return NextResponse.json({ success: false, data: [] });
     }
 
-    // Get all medical histories for this patient
+    // 2️⃣ Fetch medical histories using patientId
     const histories = await prisma.medicalHistory.findMany({
-      where: { patientId: profile.patientId },
+      where: { patientId: patientProfile.patientId },
       orderBy: { createdAt: "desc" },
     });
 
     return NextResponse.json({ success: true, data: histories });
   } catch (error) {
-    console.error("Error fetching medical history:", error);
-    return NextResponse.json(
-      { success: false, error: "Internal Server Error" },
-      { status: 500 }
-    );
+    console.error(error);
+    return NextResponse.json({ success: false, data: [] });
   }
 }

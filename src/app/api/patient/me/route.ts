@@ -23,8 +23,10 @@ export async function GET(req: NextRequest) {
         { status: 404 }
       );
     }
-
-    return NextResponse.json({ user });
+    return NextResponse.json({
+      user,
+      userId: user.id,
+    });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

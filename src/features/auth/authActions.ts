@@ -3,6 +3,7 @@ import { logout, setCredentials } from "./authSlice";
 import axiosInstance from "@/services/api";
 import { AuthResponse } from "@/types/auth";
 
+//  Register as a Patient //
 export const registerUser =
   (userData: {
     name: string;
@@ -46,7 +47,7 @@ export const registerUser =
     }
   };
 
-// Doctor Register
+// Register as a Doctor //
 interface Availability {
   isRecurring: boolean;
   dayOfWeek?: number;
@@ -77,17 +78,11 @@ export const registerDoctor =
         "api/doctor/register",
         doctorData
       );
-
-      // Save tokens
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
-
-      // Set default Authorization header for future requests
       axiosInstance.defaults.headers.common[
         "Authorization"
       ] = `Bearer ${data.accessToken}`;
-
-      // Update Redux state
       dispatch(
         setCredentials({
           user: data.user,
@@ -106,6 +101,7 @@ export const registerDoctor =
     }
   };
 
+// Login All User //
 export const loginUser =
   (userData: { email: string; password: string }) =>
   async (
@@ -142,6 +138,7 @@ export const loginUser =
     }
   };
 
+// Logout All User //
 export const logoutUser = () => async (dispatch: AppDispatch) => {
   try {
     await axiosInstance.post("/auth/logout");

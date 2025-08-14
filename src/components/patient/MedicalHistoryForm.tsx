@@ -13,9 +13,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useGetUserDetails } from "@/hooks/useGetUserDetails";
+
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useEffect, useState } from "react";
+import axios from "axios";
 const schema = z.object({
   allergies: z.string().nonempty("Allergies field is required"),
   pastTreatments: z.string().nonempty("Past treatments field is required"),
@@ -24,11 +26,29 @@ const schema = z.object({
 interface MedicalHistoryFormProps {
   onClose?: () => void;
 }
-
+interface PatientMeResponse {
+  user: {
+    id: string;
+  };
+  userId: string;
+}
 export default function MedicalHistoryForm({
   onClose,
 }: MedicalHistoryFormProps) {
-  const { user } = useGetUserDetails();
+  const [userId, setUserId] = useState<string>("");
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const res = await axios.get<PatientMeResponse>("/api/patient/me");
+        setUserId(res.data.userId);
+      } catch (error) {
+        console.error("Error fetching user ID:", error);
+      }
+    };
+    fetchUserId();
+  }, []);
+
   const form = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -39,14 +59,14 @@ export default function MedicalHistoryForm({
   });
 
   const onSubmit = async (values: any) => {
-    if (!user) {
+    if (!userId) {
       toast.error("User not found. Please log in.");
       return;
     }
 
     try {
       const formData = new FormData();
-      formData.append("userId", user.id);
+      formData.append("userId", userId);
       formData.append("allergies", values.allergies || "");
       formData.append("pastTreatments", values.pastTreatments || "");
 

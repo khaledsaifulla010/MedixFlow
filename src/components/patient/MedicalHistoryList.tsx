@@ -1,19 +1,36 @@
 "use client";
-import { useGetUserDetails } from "@/hooks/useGetUserDetails";
+
+import { useState, useEffect } from "react";
+import axios from "axios";
 import { useGetMedicalHistoryQuery } from "@/services/medicalHistory";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Bandage, Files, NutOff } from "lucide-react";
 
+interface PatientMeResponse {
+  user: { id: string };
+  userId: string;
+}
+
 export default function MedicalHistoryList() {
-  const { user } = useGetUserDetails();
+  const [userId, setUserId] = useState<string>("");
+
+  useEffect(() => {
+    const fetchUserId = async () => {
+      try {
+        const res = await axios.get<PatientMeResponse>("/api/patient/me");
+        setUserId(res.data.userId);
+      } catch (error) {
+        console.error("Error fetching user ID:", error);
+      }
+    };
+    fetchUserId();
+  }, []);
 
   const {
     data: histories = [],
     isLoading,
     isError,
-  } = useGetMedicalHistoryQuery(user?.id ?? "", {
-    skip: !user?.id,
-  });
+  } = useGetMedicalHistoryQuery(userId, { skip: !userId });
 
   if (isLoading) return <div>Loading medical history...</div>;
   if (isError) return <div>Error fetching medical history.</div>;
@@ -22,7 +39,7 @@ export default function MedicalHistoryList() {
   return (
     <div>
       <h3 className="text-3xl font-bold mb-4">Medical History</h3>
-      <div className="grid grid-cols-2 ">
+      <div className="grid grid-cols-2 gap-4">
         {histories.map((history) => (
           <Card
             key={history.id}
@@ -47,7 +64,7 @@ export default function MedicalHistoryList() {
                 </tbody>
               </table>
             </CardContent>
-            <p className="border-b-2"></p>
+
             {history.files.length > 0 && (
               <>
                 <CardTitle className="text-xl flex items-center gap-2 font-bold ml-6 -mt-2">
@@ -64,7 +81,6 @@ export default function MedicalHistoryList() {
                             "..." +
                             fileName.split(".").pop()
                           : fileName;
-
                       return (
                         <div key={i} className="flex items-center gap-1">
                           <span>{i + 1}.</span>
@@ -83,7 +99,7 @@ export default function MedicalHistoryList() {
                 </CardContent>
               </>
             )}
-            <p className="border-b-2"></p>
+
             <CardContent>
               <p className="text-sm text-gray-500 -mb-2 -mt-2">
                 Created At: {new Date(history.createdAt).toLocaleString()}

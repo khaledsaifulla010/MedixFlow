@@ -78,7 +78,7 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
         href: "/dashboard/patient/appointments",
         icon: Calendar,
       },
-      { name: "Video Calls", href: "/video", icon: Video },
+      { name: "Meetings", href: "/dashboard/patient/meetings", icon: Video },
       {
         name: "Medical History",
         href: "/dashboard/patient/medical-history",
