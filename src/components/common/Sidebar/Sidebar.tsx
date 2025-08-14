@@ -14,6 +14,7 @@ import {
   Bell,
   CircleUser,
   FileClock,
+  SquareStack,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -57,7 +58,11 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
       },
     ],
     MANAGE: [
-      { name: "Appointments", href: "/appointments", icon: Calendar },
+      {
+        name: "Patient Queue",
+        href: "/dashboard/doctor/patient-queue",
+        icon: SquareStack,
+      },
       { name: "Video Calls", href: "/video", icon: Video },
       { name: "EHR Records", href: "/ehr", icon: FileText },
     ],

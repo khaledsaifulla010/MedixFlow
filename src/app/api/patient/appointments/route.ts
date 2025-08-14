@@ -120,12 +120,31 @@ export async function GET() {
             id: true,
             speciality: true,
             degree: true,
-            user: { select: { name: true } },
+            user: {
+              select: {
+                name: true,
+                email: true,
+                phone: true,
+              },
+            },
           },
         },
-        patient: { select: { id: true, user: { select: { name: true } } } },
+        patient: {
+          select: {
+            id: true,
+
+            user: {
+              select: {
+                name: true,
+                email: true,
+                phone: true,
+              },
+            },
+          },
+        },
       },
     });
+
     const availabilities = await prisma.doctorAvailability.findMany({
       include: {
         doctor: {

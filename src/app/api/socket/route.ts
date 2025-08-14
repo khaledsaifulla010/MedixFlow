@@ -1,14 +1,12 @@
-import { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { Server as IOServer } from "socket.io";
-import { NextApiResponse } from "next";
+import { createServer } from "http";
 
 let io: IOServer;
 
 export const GET = async (req: NextRequest) => {
-  // Only initialize once
   if (!io) {
-    const server = new (require("http").Server)();
+    const server = createServer();
     io = new IOServer(server, { cors: { origin: "*" } });
 
     io.on("connection", (socket) => {
@@ -17,25 +15,34 @@ export const GET = async (req: NextRequest) => {
       socket.on("join-room", (roomId: string) => {
         socket.join(roomId);
         const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
-        if (clients.length > 1) {
-          socket.to(roomId).emit("other-user", socket.id);
-        }
+        // Notify others in room
+        clients.forEach((clientId) => {
+          if (clientId !== socket.id) {
+            io.to(clientId).emit("other-user", socket.id);
+          }
+        });
       });
 
       socket.on("offer", (payload: any) => {
-        io.to(payload.target).emit("offer", payload);
+        io.to(payload.target).emit("offer", {
+          from: socket.id,
+          signal: payload.signal,
+        });
       });
 
       socket.on("answer", (payload: any) => {
-        io.to(payload.target).emit("answer", payload);
+        io.to(payload.target).emit("answer", {
+          from: socket.id,
+          signal: payload.signal,
+        });
       });
 
-      socket.on("disconnect", () =>
-        console.log("Client disconnected:", socket.id)
-      );
+      socket.on("disconnect", () => {
+        console.log("Client disconnected:", socket.id);
+      });
     });
 
-    console.log("Socket.io initialized");
+    console.log("Socket.IO initialized");
   }
 
   return NextResponse.json({ message: "Socket initialized" });

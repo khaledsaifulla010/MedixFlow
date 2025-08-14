@@ -5,7 +5,7 @@ import { useVideoCall } from "@/hooks/useVideoCall";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, XCircleIcon, MonitorUp } from "lucide-react";
 
-const PatientCallPage: React.FC = () => {
+const DoctorCallPage: React.FC = () => {
   const { id } = useParams();
   const {
     userVideoRef,
@@ -30,7 +30,7 @@ const PatientCallPage: React.FC = () => {
         autoPlay
         className="w-96 h-72 rounded-lg border-2 mt-4"
       />
-      {!inCall && <p className="text-white mt-4">Waiting for doctor...</p>}
+      {!inCall && <p className="text-white mt-4">Waiting for patient...</p>}
 
       <div className="flex gap-4 mt-6">
         <Button onClick={toggleMic}>{micOn ? <Mic /> : <MicOff />}</Button>
@@ -45,4 +45,4 @@ const PatientCallPage: React.FC = () => {
   );
 };
 
-export default PatientCallPage;
+export default DoctorCallPage;
