@@ -2,122 +2,116 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
+import {
+  sendEmailReminder,
+  getOnlineAppointmentReminderEmail,
+} from "@/services/emailService";
 
 // Helper to format date as YYYY-MM-DD
 function formatDate(date: Date) {
   return date.toISOString().split("T")[0];
 }
 
+
+
 export async function POST(req: Request) {
   try {
     const cookieStore = cookies();
     const token = (await cookieStore).get("accessToken")?.value;
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
+    const userId = decoded.id;
 
-    let decoded: { id: string };
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
-    } catch {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 });
-    }
-
-    const userId = decoded.id; // user.id from JWT
     const { doctorId, startTime, endTime } = await req.json();
+    if (!doctorId || !startTime || !endTime)
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+
     const start = new Date(startTime);
     const end = new Date(endTime);
 
-    // Find doctor
+    // 1️⃣ Find doctor
     const doctor = await prisma.doctorProfile.findUnique({
       where: { id: doctorId },
+      include: { user: { select: { name: true, email: true } } },
     });
-    if (!doctor)
-      return NextResponse.json({ error: "Doctor not found" }, { status: 400 });
+    if (!doctor) return NextResponse.json({ error: "Doctor not found" }, { status: 400 });
 
-    // Find patient profile
-    const patient = await prisma.patientProfile.findUnique({
+    // 2️⃣ Find or create patient
+    let patient = await prisma.patientProfile.findUnique({
       where: { userId },
+      include: { user: { select: { name: true, email: true } } },
     });
-    if (!patient)
-      return NextResponse.json({ error: "Patient not found" }, { status: 400 });
 
-    // Get doctor availabilities
+    if (!patient) {
+      patient = await prisma.patientProfile.create({
+        data: { userId, patientId: `PAT-${Date.now()}` },
+        include: { user: { select: { name: true, email: true } } },
+      });
+    }
+
+    // 3️⃣ Check availability
     const availabilities = await prisma.doctorAvailability.findMany({
       where: {
         doctorId,
         OR: [
           { isRecurring: true, dayOfWeek: start.getDay() },
-          { isRecurring: false, date: formatDate(start) },
+          { isRecurring: false, date: start.toISOString().split("T")[0] },
         ],
       },
     });
 
     if (!availabilities.length)
-      return NextResponse.json(
-        { error: "Doctor not available" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Doctor not available" }, { status: 400 });
 
-    // Check if requested time is inside availability
     const isInsideAvailability = availabilities.some((a) => {
       const availStart = a.isRecurring
-        ? new Date(`${formatDate(start)}T${a.startTime}`)
+        ? new Date(`${start.toISOString().split("T")[0]}T${a.startTime}`)
         : new Date(`${a.date}T${a.startTime}`);
       const availEnd = a.isRecurring
-        ? new Date(`${formatDate(start)}T${a.endTime}`)
+        ? new Date(`${start.toISOString().split("T")[0]}T${a.endTime}`)
         : new Date(`${a.date}T${a.endTime}`);
       return start >= availStart && end <= availEnd;
     });
-
     if (!isInsideAvailability)
-      return NextResponse.json(
-        { error: "Selected time is outside doctor's availability" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Selected time outside availability" }, { status: 400 });
 
-    // Check conflicts
+    // 4️⃣ Check conflicts
     const conflict = await prisma.appointment.findFirst({
-      where: {
-        doctorId,
-        startTime: { lt: end },
-        endTime: { gt: start },
-      },
+      where: { doctorId, startTime: { lt: end }, endTime: { gt: start } },
     });
-    if (conflict)
-      return NextResponse.json(
-        { error: "Slot already booked" },
-        { status: 400 }
-      );
+    if (conflict) return NextResponse.json({ error: "Slot already booked" }, { status: 400 });
 
-    // ✅ Create appointment
+    // 5️⃣ Create appointment
     const appointment = await prisma.appointment.create({
-      data: {
-        doctorId,
-        patientId: patient.id, // <-- IMPORTANT: use PatientProfile.id
-        startTime: start,
-        endTime: end,
-      },
+      data: { doctorId, patientId: patient.id, startTime: start, endTime: end },
       include: {
-        doctor: {
-          select: {
-            id: true,
-            speciality: true,
-            user: { select: { name: true } },
-          },
-        },
-        patient: { select: { id: true, user: { select: { name: true } } } },
+        doctor: { select: { speciality: true, degree: true, user: { select: { name: true, email: true } } } },
+        patient: { select: { user: { select: { name: true, email: true } } } },
       },
     });
+
+    // 6️⃣ Send email
+    if (patient.user.email) {
+      const { htmlMessage, textMessage } = getOnlineAppointmentReminderEmail(
+        doctor.user.name,
+        doctor.degree || "",
+        doctor.speciality || "",
+        patient.user.name,
+        appointment.startTime
+      );
+      await sendEmailReminder(patient.user.email, "Appointment Confirmation", htmlMessage, textMessage);
+    }
 
     return NextResponse.json(appointment);
   } catch (err) {
-    console.error("POST /api/appointments error:", err);
+    console.error(err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
+
+// GET all appointments
 export async function GET() {
   try {
     const appointments = await prisma.appointment.findMany({

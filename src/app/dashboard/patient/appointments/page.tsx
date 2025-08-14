@@ -49,9 +49,6 @@ interface ApiResponse {
 }
 
 const formatDate = (date: Date) => date.toISOString().split("T")[0];
-const formatDisplayDate = (date: Date) =>
-  `${date.toLocaleString("default", { month: "short" })} ${date.getDate()}`;
-
 const timeStringToDate = (date: Date, time: string) => {
   const [h, m] = time.split(":").map(Number);
   const d = new Date(date);
@@ -70,7 +67,7 @@ export default function AppointmentPage() {
       const res = await axios.get<ApiResponse>("/api/appointments");
       setAppointments(res.data.appointments);
       setAvailabilities(res.data.availabilities);
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to fetch data");
     }
   };
@@ -86,12 +83,10 @@ export default function AppointmentPage() {
         ? a.dayOfWeek === start.getDay()
         : a.date && formatDate(new Date(a.date)) === formatDate(start)
     );
-
     if (!availability) return toast.error("No doctor available for this time");
 
     const availStart = timeStringToDate(start, availability.startTime);
     const availEnd = timeStringToDate(start, availability.endTime);
-
     if (start < availStart || end > availEnd)
       return toast.error(
         `Selected time must be ${availability.startTime}-${availability.endTime}`
@@ -113,7 +108,7 @@ export default function AppointmentPage() {
       });
       toast.success("Appointment Booked Successfully!");
       fetchData();
-    } catch (err: any) {
+    } catch {
       toast.error("Failed to book appointment");
     }
   };
@@ -123,13 +118,12 @@ export default function AppointmentPage() {
     try {
       await axios.post("/api/appointments", {
         doctorId: e.extendedProps.doctorId,
-        patientId: e.extendedProps.patientId,
         startTime: e.start?.toISOString(),
         endTime: e.end?.toISOString(),
       });
       toast.success("Appointment updated!");
       fetchData();
-    } catch (err: any) {
+    } catch {
       info.revert();
       toast.error("Cannot move appointment");
     }
@@ -137,88 +131,29 @@ export default function AppointmentPage() {
 
   const handleEventClick = (info: EventClickArg) => {
     const e = info.event;
-    const color = e.backgroundColor;
+    const appointment = appointments.find(
+      (a) => `appointment-${a.id}` === e.id
+    );
+    if (!appointment) return;
 
-    if (color === "#22C55E") {
-      const availability = availabilities.find(
-        (a) => `availability-${a.id}` === e.id
-      );
-      if (!availability) return;
-
-      const doctor = availability.doctor;
-
-      const availStart = availability.date
-        ? timeStringToDate(new Date(availability.date), availability.startTime)
-        : null;
-      const availEnd = availability.date
-        ? timeStringToDate(new Date(availability.date), availability.endTime)
-        : null;
-
-      const bookedAppointments = appointments.filter(
-        (a) =>
-          a.doctor.id === doctor.id &&
-          availStart &&
-          availEnd &&
-          new Date(a.startTime) >= availStart &&
-          new Date(a.startTime) < availEnd
-      );
-
-      setDialogContent(
-        <div className="space-y-2">
-          <div>
-            <strong>Doctor Name:</strong> {doctor.user.name}
-          </div>
-          <div>
-            <strong>Speciality:</strong> {doctor.speciality}
-          </div>
-          <div>
-            <strong>Available Time:</strong> {availStart?.toLocaleTimeString()}{" "}
-            - {availEnd?.toLocaleTimeString()}
-          </div>
-          {bookedAppointments.length > 0 && (
-            <div>
-              <strong>Booked Appointments:</strong>
-              <ul className="ml-4 list-disc">
-                {bookedAppointments.map((a) => (
-                  <li key={a.id}>
-                    {a.patient.user.name} (
-                    {new Date(a.startTime).toLocaleTimeString()} -{" "}
-                    {new Date(a.endTime).toLocaleTimeString()})
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+    setDialogContent(
+      <div className="space-y-2">
+        <div>
+          <strong>Doctor Name:</strong> {appointment.doctor.user.name}
         </div>
-      );
-    } else if (color === "#EF4444") {
-      // Red: show doctor + patient info
-      const appointment = appointments.find(
-        (a) => `appointment-${a.id}` === e.id
-      );
-      if (!appointment) return;
-
-      setDialogContent(
-        <div className="space-y-2">
-          <div>
-            <strong>Doctor Name:</strong> {appointment.doctor.user.name}
-          </div>
-          <div>
-            <strong>Doctor Speciality:</strong> {appointment.doctor.speciality}
-          </div>
-          <div>
-            <strong>Patient Name:</strong>{" "}
-            {appointment.patient?.user?.name || e.extendedProps.patientName}
-          </div>
-          <div>
-            <strong>Appointment Time:</strong>{" "}
-            {new Date(appointment.startTime).toLocaleTimeString()} -{" "}
-            {new Date(appointment.endTime).toLocaleTimeString()}
-          </div>
+        <div>
+          <strong>Speciality:</strong> {appointment.doctor.speciality}
         </div>
-      );
-    }
-
+        <div>
+          <strong>Patient Name:</strong> {appointment.patient.user.name}
+        </div>
+        <div>
+          <strong>Time:</strong>{" "}
+          {new Date(appointment.startTime).toLocaleTimeString()} -{" "}
+          {new Date(appointment.endTime).toLocaleTimeString()}
+        </div>
+      </div>
+    );
     setDialogOpen(true);
   };
 
@@ -230,7 +165,7 @@ export default function AppointmentPage() {
       end: a.endTime,
       color: "#EF4444",
       textColor: "white",
-      extendedProps: { doctorId: a.doctor.id, patientId: a.patient.id },
+      extendedProps: { doctorId: a.doctor.id },
     })),
     ...availabilities.map((a) => {
       const today = new Date();
@@ -266,7 +201,7 @@ export default function AppointmentPage() {
           right: "timeGridWeek,dayGridMonth,listWeek",
         }}
         initialView="timeGridWeek"
-        nowIndicator={true}
+        nowIndicator
         selectable
         editable
         select={handleSelect}
@@ -277,35 +212,7 @@ export default function AppointmentPage() {
         slotMinTime="07:00:00"
         slotMaxTime="24:00:00"
         allDaySlot={false}
-        dayHeaderContent={(args) => {
-          const dayName = args.date.toLocaleDateString("en-US", {
-            weekday: "short",
-          });
-          const dayDate = formatDisplayDate(args.date);
-          return (
-            <div className="flex flex-col text-center">
-              <span className="font-semibold text-gray-700">{dayName}</span>
-              <span className="text-gray-500 text-sm">{dayDate}</span>
-            </div>
-          );
-        }}
-        slotLabelContent={(arg) => {
-          const date = arg.date;
-          const hours = date.getHours();
-          const minutes = date.getMinutes();
-          const hour12 = hours % 12 === 0 ? 12 : hours % 12;
-          const ampm = hours >= 12 ? "PM" : "AM";
-          return (
-            <span className="text-gray-500 text-sm">
-              {hour12}:{minutes.toString().padStart(2, "0")} {ampm}
-            </span>
-          );
-        }}
-        slotLabelFormat={{ hour: "numeric", minute: "2-digit", hour12: true }}
-        dayMaxEventRows={true}
-        themeSystem="standard"
       />
-
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
