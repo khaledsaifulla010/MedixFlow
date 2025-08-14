@@ -19,7 +19,6 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import LogoutButton from "@/components/authComponents/LogoutButton";
 
-
 type MenuItem = {
   name: string;
   href: string;
@@ -87,7 +86,14 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
       },
       { name: "Prescriptions", href: "/prescriptions", icon: FileText },
     ],
-    SYSTEM: [{ name: "Messages", href: "/messages", icon: MessageSquare }],
+    SYSTEM: [
+      { name: "Messages", href: "/messages", icon: MessageSquare },
+      {
+        name: "Notifications",
+        href: "/dashboard/patient/notifications",
+        icon: Bell,
+      },
+    ],
   },
 };
 

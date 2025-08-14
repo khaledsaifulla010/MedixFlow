@@ -84,7 +84,7 @@ model Appointment {
   startTime  DateTime
   endTime    DateTime
   createdAt  DateTime        @default(now())
-
+  isRead     Boolean         @default(false)
   doctor     DoctorProfile   @relation("DoctorAppointments", fields: [doctorId], references: [id])
   patient    PatientProfile  @relation("PatientAppointments", fields: [patientId], references: [id])
 }

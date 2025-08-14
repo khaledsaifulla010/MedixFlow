@@ -64,7 +64,7 @@ export default function AppointmentPage() {
 
   const fetchData = async () => {
     try {
-      const res = await axios.get<ApiResponse>("/api/appointments");
+      const res = await axios.get<ApiResponse>("/api/patient/appointments");
       setAppointments(res.data.appointments);
       setAvailabilities(res.data.availabilities);
     } catch {
@@ -101,7 +101,7 @@ export default function AppointmentPage() {
     if (conflict) return toast.error("Slot already booked");
 
     try {
-      await axios.post("/api/appointments", {
+      await axios.post("/api/patient/appointments", {
         doctorId: availability.doctorId,
         startTime: start.toISOString(),
         endTime: end.toISOString(),
@@ -116,7 +116,7 @@ export default function AppointmentPage() {
   const handleEventDrop = async (info: EventDropArg) => {
     const e = info.event;
     try {
-      await axios.post("/api/appointments", {
+      await axios.post("/api/patient/appointments", {
         doctorId: e.extendedProps.doctorId,
         startTime: e.start?.toISOString(),
         endTime: e.end?.toISOString(),

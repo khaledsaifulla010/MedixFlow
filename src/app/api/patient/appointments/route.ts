@@ -141,7 +141,7 @@ export async function GET() {
 
     return NextResponse.json({ appointments, availabilities });
   } catch (err) {
-    console.error("GET /api/appointments error:", err);
+    console.error("GET /api/patient/appointments error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
