@@ -1,7 +1,9 @@
+// app/api/register-doctor/route.ts
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import prisma from "@/lib/prisma";
+
 export async function POST(req: Request) {
   try {
     const {
@@ -15,6 +17,7 @@ export async function POST(req: Request) {
       degree,
       availabilities,
     } = await req.json();
+
     // Validate required fields
     if (
       !name ||
@@ -42,9 +45,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // Check for existing user
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
+    // Check if user already exists
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
       return NextResponse.json(
         { message: "User already exists" },
         { status: 400 }
@@ -64,7 +67,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Format availabilities (strings are fine now)
+    // Format availabilities
     const formattedAvailabilities = availabilities.map((slot: any) => {
       if (
         typeof slot.isRecurring !== "boolean" ||
@@ -77,11 +80,14 @@ export async function POST(req: Request) {
       return {
         isRecurring: slot.isRecurring,
         dayOfWeek: slot.isRecurring ? slot.dayOfWeek : null,
-        date: slot.isRecurring ? null : slot.date, // string now
+        date: slot.isRecurring
+          ? "1970-01-01" // placeholder for recurring slots
+          : new Date(slot.date).toISOString().split("T")[0],
         startTime: slot.startTime,
         endTime: slot.endTime,
       };
     });
+
 
     // Create doctor with profile & availabilities
     const doctor = await prisma.user.create({
@@ -107,7 +113,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // Generate tokens
+    // Generate JWT tokens
     const accessToken = jwt.sign(
       { id: doctor.id, role: doctor.role },
       process.env.JWT_SECRET!,

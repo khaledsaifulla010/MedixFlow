@@ -1,6 +1,7 @@
+"use client";
+import LogoutButton from "@/components/authComponents/LogoutButton";
+import { ModeToggle } from "@/components/ModeToggle";
 import { UserCircle } from "lucide-react";
-import LogoutButton from "../authComponents/LogoutButton";
-import { ModeToggle } from "../ModeToggle";
 
 export default function Navbar() {
   return (

@@ -22,22 +22,23 @@ model User {
   role           Role
   password       String
   createdAt      DateTime         @default(now())
-  
+
   // Relations
   doctorProfile  DoctorProfile?   @relation("UserDoctorProfile")
   patientProfile PatientProfile?  @relation("UserPatientProfile")
 }
 
 model DoctorProfile {
-  id          String               @id @default(cuid())
-  userId      String               @unique
-  user        User                 @relation("UserDoctorProfile", fields: [userId], references: [id])
-  speciality  String
-  degree      String
-  createdAt   DateTime             @default(now())
+  id             String               @id @default(cuid())
+  userId         String               @unique
+  user           User                 @relation("UserDoctorProfile", fields: [userId], references: [id])
+  speciality     String
+  degree         String
+  createdAt      DateTime             @default(now())
 
   // Relations
   availabilities DoctorAvailability[]
+  appointments   Appointment[]        @relation("DoctorAppointments")
 }
 
 model DoctorAvailability {
@@ -45,21 +46,24 @@ model DoctorAvailability {
   doctorId    String
   isRecurring Boolean       @default(false) // true = recurring weekly, false = one-time
   dayOfWeek   Int?          // 0 = Sunday, 1 = Monday, ..., 6 = Saturday (used if recurring)
-  date        String     // specific date for one-time availability
-  startTime   String      // start time (time portion matters)
-  endTime     String      // end time (time portion matters)
+  date        String?       // <-- nullable now
+  startTime   String
+  endTime     String
   createdAt   DateTime      @default(now())
 
   doctor      DoctorProfile @relation(fields: [doctorId], references: [id])
 }
 
 model PatientProfile {
-  id        String          @id @default(cuid())
-  patientId String          @unique
-  userId    String          @unique
-  user      User            @relation("UserPatientProfile", fields: [userId], references: [id])
-  histories MedicalHistory[]
-  createdAt DateTime        @default(now())
+  id           String          @id @default(cuid())
+  patientId    String          @unique
+  userId       String          @unique
+  user         User            @relation("UserPatientProfile", fields: [userId], references: [id])
+  histories    MedicalHistory[]
+  createdAt    DateTime        @default(now())
+
+  // Relations
+  appointments Appointment[]   @relation("PatientAppointments")
 }
 
 model MedicalHistory {
@@ -71,4 +75,16 @@ model MedicalHistory {
   createdAt      DateTime       @default(now())
 
   patientProfile PatientProfile @relation(fields: [patientId], references: [patientId])
+}
+
+model Appointment {
+  id         String          @id @default(cuid())
+  doctorId   String
+  patientId  String
+  startTime  DateTime
+  endTime    DateTime
+  createdAt  DateTime        @default(now())
+
+  doctor     DoctorProfile   @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  patient    PatientProfile  @relation("PatientAppointments", fields: [patientId], references: [id])
 }

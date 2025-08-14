@@ -1,5 +1,4 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -18,7 +17,8 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import LogoutButton from "../authComponents/LogoutButton";
+import LogoutButton from "@/components/authComponents/LogoutButton";
+
 
 type MenuItem = {
   name: string;
