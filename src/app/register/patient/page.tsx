@@ -49,7 +49,7 @@ export default function PatientRegisterPage() {
   });
 
   const onSubmit = async (values: PatientRegisterInput) => {
-    if (date) values.dob = date; // pass Date object directly
+    if (date) values.dob = date;
 
     const res = await dispatch(registerPatient(values));
     if (res.success) {
@@ -68,7 +68,6 @@ export default function PatientRegisterPage() {
         </h2>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Name */}
             <FormField
               control={form.control}
               name="name"
@@ -82,7 +81,6 @@ export default function PatientRegisterPage() {
                 </FormItem>
               )}
             />
-            {/* Email */}
             <FormField
               control={form.control}
               name="email"
@@ -100,7 +98,6 @@ export default function PatientRegisterPage() {
                 </FormItem>
               )}
             />
-            {/* Phone */}
             <FormField
               control={form.control}
               name="phone"
@@ -114,7 +111,6 @@ export default function PatientRegisterPage() {
                 </FormItem>
               )}
             />
-            {/* DOB */}
             <FormField
               control={form.control}
               name="dob"
@@ -164,7 +160,7 @@ export default function PatientRegisterPage() {
                 );
               }}
             />
-            {/* Password */}
+
             <FormField
               control={form.control}
               name="password"

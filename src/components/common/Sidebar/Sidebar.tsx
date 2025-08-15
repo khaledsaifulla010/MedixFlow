@@ -79,8 +79,8 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
     ],
     MANAGE: [
       {
-        name: "Appointments",
-        href: "/dashboard/patient/appointments",
+        name: "Appointment",
+        href: "/dashboard/patient/appointment",
         icon: Calendar,
       },
       { name: "Meetings", href: "/dashboard/patient/meetings", icon: Video },
@@ -131,7 +131,7 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 h-screen sticky top-0 bg-white dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-800 flex flex-col">
-      {/* Logo */}
+
       <div className="px-6 py-4 border-b-2 border-gray-200 dark:border-gray-800">
         <div className="flex flex-col items-center">
           <div className="block dark:hidden">
@@ -158,7 +158,6 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Menu */}
       <nav className="flex-1 p-4 space-y-4 mt-4">
         {Object.entries(menuGroups).map(([section, items]) => (
           <div key={section}>
@@ -190,10 +189,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Divider */}
       <div className="mb-6 border-b-2 border-gray-200 dark:border-gray-800"></div>
-
-      {/* Logout Button */}
       <div className="mb-4 px-4 flex items-center justify-center cursor-pointer">
         <LogoutButton />
       </div>

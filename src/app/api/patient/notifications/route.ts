@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     }
 
     const appointments = await prisma.appointment.findMany({
-      where: { patientId, isRead: false }, // only unread
+      where: { patientId, isRead: false },
       include: { doctor: { include: { user: true } } },
       orderBy: { createdAt: "desc" },
     });

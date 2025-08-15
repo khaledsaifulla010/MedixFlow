@@ -1,29 +1,32 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
+export interface Doctor {
+  id: string;
+  user: { name: string };
+  speciality: string;
+  degree: string;
+}
+
+export interface Availability {
+  id: string;
+  doctorId: string;
+  doctor: Doctor;
+  date: string | null;
+  startTime: string;
+  endTime: string;
+  isRecurring: boolean;
+  dayOfWeek?: number;
+}
+
 export interface Appointment {
   id: string;
   doctorId: string;
   patientId: string;
   startTime: string;
   endTime: string;
-  isRead: boolean;
-  createdAt: string;
-  doctor: {
-    id: string;
-    userId: string;
-    speciality: string;
-    degree: string;
+  doctor: Doctor;
+  patient?: {
     user: {
-      id: string;
-      name: string;
-      email: string;
-      phone: string;
-    };
-  };
-  patient: {
-    id: string;
-    user: {
-      id: string;
       name: string;
       email: string;
       phone: string;
@@ -33,18 +36,54 @@ export interface Appointment {
 
 export const appointmentApi = createApi({
   reducerPath: "appointmentApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "/" }),
-  tagTypes: ["Appointments"],
+  baseQuery: fetchBaseQuery({
+    baseUrl: "/api",
+    fetchFn: (input, init = {}) =>
+      fetch(input, { ...init, credentials: "include" }),
+  }),
+  tagTypes: ["Availability", "Appointment"],
+
   endpoints: (builder) => ({
-    getPatientAppointments: builder.query<Appointment[], void>({
-      query: () => `api/patient/appointments`,
-      transformResponse: (response: {
-        appointments: Appointment[];
-        availabilities: any;
-      }) => response.appointments,
-      providesTags: ["Appointments"],
+    getAvailabilities: builder.query<Availability[], void>({
+      query: () => "/doctor/available",
+      providesTags: ["Availability"],
+      transformResponse: (res: { data: Availability[] }) => res.data,
+    }),
+    getAppointments: builder.query<Appointment[], void>({
+      query: () => "/patient/appointment",
+      providesTags: ["Appointment"],
+      transformResponse: (res: { data: Appointment[] }) => res.data,
+    }),
+
+    createAppointment: builder.mutation<
+      Appointment,
+      Partial<Appointment> & { doctorId: string }
+    >({
+      query: (body) => ({
+        url: "/patient/appointment",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Appointment"],
+    }),
+
+    updateAppointment: builder.mutation<
+      Appointment,
+      { appointmentId: string; startTime: string; endTime: string }
+    >({
+      query: (body) => ({
+        url: "/patient/appointment",
+        method: "PATCH",
+        body,
+      }),
+      invalidatesTags: ["Appointment"],
     }),
   }),
 });
 
-export const { useGetPatientAppointmentsQuery } = appointmentApi;
+export const {
+  useGetAvailabilitiesQuery,
+  useGetAppointmentsQuery,
+  useCreateAppointmentMutation,
+  useUpdateAppointmentMutation,
+} = appointmentApi;

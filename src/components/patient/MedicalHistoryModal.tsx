@@ -24,20 +24,16 @@ export default function MedicalHistoryModal({
 
   return ReactDOM.createPortal(
     <>
-      {/* Overlay */}
       <div
         className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
         onClick={onClose}
         aria-label="Close modal overlay"
       />
-
-      {/* Modal */}
       <aside
         role="dialog"
         aria-modal="true"
         className="fixed top-0 right-0 h-full w-full max-w-[500px] bg-white dark:bg-gray-900 shadow-lg z-50 flex flex-col overflow-y-auto"
       >
-        {/* Header */}
         <header className="flex justify-between items-center p-4 border-b border-gray-300 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             Medical History Details
@@ -51,7 +47,6 @@ export default function MedicalHistoryModal({
           </button>
         </header>
 
-        {/* Form */}
         <div className="p-4 flex-grow text-gray-900 dark:text-gray-100 mt-12">
           <MedicalHistoryForm onClose={onClose} />
         </div>

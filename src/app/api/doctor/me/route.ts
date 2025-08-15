@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 const SECRET = process.env.JWT_SECRET!;
 
 export async function GET(req: Request) {
-  // Get access token from cookies
+
   const cookieHeader = req.headers.get("cookie");
   const accessToken = cookieHeader
     ?.split("; ")
@@ -17,18 +17,16 @@ export async function GET(req: Request) {
   }
 
   try {
-    // Verify JWT token
+
     const payload = jwt.verify(accessToken, SECRET) as {
       id: string;
       role: string;
     };
 
-    // Ensure the user is a doctor
     if (payload.role !== "doctor") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Fetch doctor user + profile + availabilities
     const user = await prisma.user.findUnique({
       where: { id: payload.id },
       include: {

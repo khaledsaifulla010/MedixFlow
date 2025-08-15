@@ -15,15 +15,8 @@ import {
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
-interface DoctorProfilePageProps {
-  doctorId: string;
-}
-
-const DoctorProfileDetails: React.FC<DoctorProfilePageProps> = ({
-  doctorId,
-}) => {
-  const { data, isLoading, isError } =
-    useGetDoctorAvailabilitiesQuery(doctorId);
+const DoctorProfileDetails = () => {
+  const { data, isLoading, isError } = useGetDoctorAvailabilitiesQuery();
 
   if (isLoading) return <p className="ml-6">Loading...</p>;
   if (isError || !data?.data.length)
@@ -49,7 +42,7 @@ const DoctorProfileDetails: React.FC<DoctorProfilePageProps> = ({
     <div className="p-6 dark:bg-gray-900 rounded-xl shadow">
       <div className="p-6 space-y-8 border-2 rounded-lg">
         <div className="flex justify-between">
-          {/* Personal Info */}
+
           <Card className="w-[400px] dark:bg-gray-800 border-2">
             <CardHeader className="flex items-center space-x-4">
               <UserCircle className="w-12 h-14" />
@@ -94,7 +87,6 @@ const DoctorProfileDetails: React.FC<DoctorProfilePageProps> = ({
             </CardContent>
           </Card>
 
-          {/* Professional Experience */}
           <Card className="w-[350px] h-[280px] dark:bg-gray-800 border-2 py-12">
             <CardHeader className="flex items-center space-x-4">
               <div>
@@ -127,7 +119,6 @@ const DoctorProfileDetails: React.FC<DoctorProfilePageProps> = ({
             </CardContent>
           </Card>
 
-          {/* Availability */}
           <Card className="w-[350px] dark:bg-gray-800 border-2 py-12">
             <CardHeader className="flex items-center space-x-4">
               <div>

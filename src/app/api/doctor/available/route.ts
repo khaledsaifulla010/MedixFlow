@@ -1,4 +1,3 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
@@ -12,18 +11,17 @@ export async function GET(req: NextRequest) {
     const availabilities = await prisma.doctorAvailability.findMany({
       where: whereClause,
       include: {
-        doctor: {
-          include: {
-            user: true,
-          },
-        },
+        doctor: { include: { user: true } },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json({ success: true, data: availabilities });
+    const formattedAvailabilities = availabilities.map((a) => ({
+      ...a,
+      date: a.date ? a.date.split("T")[0] : null,
+    }));
+
+    return NextResponse.json({ success: true, data: formattedAvailabilities });
   } catch (error) {
     console.error("Error fetching doctor availabilities:", error);
     return NextResponse.json(

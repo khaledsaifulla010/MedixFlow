@@ -1,27 +1,26 @@
 "use client";
 import {
+  useGetAppointmentsQuery,
   Appointment,
-  useGetPatientAppointmentsQuery,
 } from "@/services/appointmentApi";
-import React from "react";
-import { format } from "date-fns";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  AlarmClockCheck,
-  CalendarDays,
   User,
-  Video,
   Mail,
   Phone,
+  CalendarDays,
+  AlarmClockCheck,
+  Video,
 } from "lucide-react";
+import { format } from "date-fns";
 
 const PatientQueueDetails = () => {
   const {
     data: appointments = [],
     isLoading,
     isError,
-  } = useGetPatientAppointmentsQuery();
+  } = useGetAppointmentsQuery();
 
   if (isLoading) return <div>Loading appointments...</div>;
   if (isError) return <div>Error fetching appointments.</div>;
@@ -40,14 +39,16 @@ const PatientQueueDetails = () => {
             "hh:mm a"
           )}`;
 
+          const patientUser = appt.patient?.user;
+
           return (
             <Card key={appt.id} className="shadow-md dark:bg-gray-900 border-2">
               <CardHeader>
                 <CardTitle className="font-black text-xl -mb-6 -mt-2 flex items-center gap-2">
-                  <User className="h-6" /> {appt.patient.user.name}
+                  <User className="h-6" />{" "}
+                  {patientUser?.name || "Unknown Patient"}
                 </CardTitle>
               </CardHeader>
-              <p className="border-b-2"></p>
               <CardContent>
                 <table className="w-full text-sm -mt-3">
                   <tbody>
@@ -55,19 +56,19 @@ const PatientQueueDetails = () => {
                       <td className="font-semibold py-2 flex items-center gap-2">
                         Name
                       </td>
-                      <td className="py-2"></td>
+                      <td className="py-2">{patientUser?.name || "N/A"}</td>
                     </tr>
                     <tr className="border-b-2">
                       <td className="font-semibold py-2 flex items-center gap-2">
                         <Mail className="h-5" /> Email
                       </td>
-                      <td className="py-2">{appt.patient.user.email}</td>
+                      <td className="py-2">{patientUser?.email || "N/A"}</td>
                     </tr>
                     <tr className="border-b-2">
                       <td className="font-semibold py-2 flex items-center gap-2">
                         <Phone className="h-5" /> Phone
                       </td>
-                      <td className="py-2">{appt.patient.user.phone}</td>
+                      <td className="py-2">{patientUser?.phone || "N/A"}</td>
                     </tr>
                     <tr className="border-b-2">
                       <td className="font-semibold py-2 flex items-center gap-2">
@@ -84,14 +85,10 @@ const PatientQueueDetails = () => {
                   </tbody>
                 </table>
               </CardContent>
-              <p className="border-b-2"></p>
               <div className="flex px-4 -mb-2 -mt-2 justify-end">
                 <Button
                   onClick={() =>
-                    window.open(
-                      `/dashboard/video-call/${appt.id}`,
-                      "_blank"
-                    )
+                    window.open(`/dashboard/video-call/${appt.id}`, "_blank")
                   }
                   className="cursor-pointer"
                 >

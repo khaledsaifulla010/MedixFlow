@@ -1,4 +1,4 @@
-// File: validation/patientRegisterSchema.ts
+
 import { z } from "zod";
 
 export const patientRegisterSchema = z.object({

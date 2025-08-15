@@ -126,7 +126,6 @@ export default function DoctorRegisterPage() {
                 />
               </div>
 
-              {/* Phone + DOB */}
               <div className="flex items-center justify-between gap-6">
                 <FormField
                   control={form.control}
@@ -202,7 +201,6 @@ export default function DoctorRegisterPage() {
                   }}
                 />
               </div>
-              {/* Password */}
               <div>
                 <FormField
                   control={form.control}
@@ -222,7 +220,6 @@ export default function DoctorRegisterPage() {
                   )}
                 />
               </div>
-              {/* Speciality + Degree */}
               <div className="flex items-center justify-between gap-6">
                 <FormField
                   control={form.control}
@@ -251,8 +248,6 @@ export default function DoctorRegisterPage() {
                   )}
                 />
               </div>
-
-              {/* Doctor Availabilities */}
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Availabilities *</h3>
                 {fields.map((fieldItem, index) => (
@@ -362,8 +357,6 @@ export default function DoctorRegisterPage() {
                         />
                       )}
                     </div>
-
-                    {/* Start Time + End Time */}
                     <div className="flex items-center justify-between gap-6">
                       <FormField
                         control={form.control}

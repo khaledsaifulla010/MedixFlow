@@ -40,21 +40,11 @@ const NotificationPage: React.FC<NotificationPageProps> = ({ patientId }) => {
     fetchNotifications();
   }, [patientId]);
 
-  const totalNotifications = notifications.length;
 
   return (
     <div className="p-6">
-      {/* Notification Bell */}
-      <div className="flex justify-end mb-6 relative">
-        <Bell className="w-6 h-6" />
-        {totalNotifications > 0 && (
-          <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
-            {totalNotifications}
-          </span>
-        )}
-      </div>
+      <h1 className="text-3xl font-bold mb-4">Your Notifications</h1>
 
-      {/* Notifications List */}
       {notifications.map((notification) => (
         <Card
           key={notification.id}

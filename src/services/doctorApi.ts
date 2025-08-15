@@ -36,7 +36,6 @@ export const doctorApi = createApi({
   reducerPath: "doctorApi",
   baseQuery: fetchBaseQuery({ baseUrl: "/" }),
   endpoints: (builder) => ({
-    // POST: Register doctor
     registerDoctor: builder.mutation<AuthResponse, DoctorRegisterData>({
       query: (body) => ({
         url: "api/doctor/register",
@@ -44,8 +43,6 @@ export const doctorApi = createApi({
         body,
       }),
     }),
-
-    // GET: Doctor profile
     getDoctorProfile: builder.query<any, string>({
       query: (id) => `api/doctors/${id}`,
     }),

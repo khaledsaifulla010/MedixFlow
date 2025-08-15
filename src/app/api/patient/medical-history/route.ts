@@ -12,7 +12,6 @@ export async function POST(req: NextRequest) {
     const allergies = formData.get("allergies") as string;
     const pastTreatments = formData.get("pastTreatments") as string;
 
-    // Handle file uploads
     const files = formData.getAll("files") as File[];
     const uploadDir = path.join(process.cwd(), "public/uploads");
     await mkdir(uploadDir, { recursive: true });
@@ -27,7 +26,6 @@ export async function POST(req: NextRequest) {
       fileUrls.push(`/uploads/${filename}`);
     }
 
-    // Ensure patient profile exists
     let profile = await prisma.patientProfile.findUnique({
       where: { userId },
     });
@@ -35,16 +33,15 @@ export async function POST(req: NextRequest) {
     if (!profile) {
       profile = await prisma.patientProfile.create({
         data: {
-          patientId: await generatePatientId(),
+          id: crypto.randomUUID(),
           userId,
         },
       });
     }
 
-    // Create medical history
     const history = await prisma.medicalHistory.create({
       data: {
-        patientId: profile.patientId,
+        patientProfileId: profile.id,
         allergies,
         pastTreatments,
         files: fileUrls,
@@ -68,7 +65,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, data: [] });
     }
 
-    // 1️⃣ Find the patient's profile by userId
     const patientProfile = await prisma.patientProfile.findUnique({
       where: { userId },
     });
@@ -77,9 +73,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: false, data: [] });
     }
 
-    // 2️⃣ Fetch medical histories using patientId
     const histories = await prisma.medicalHistory.findMany({
-      where: { patientId: patientProfile.patientId },
+      where: { patientProfileId: patientProfile.id },
       orderBy: { createdAt: "desc" },
     });
 

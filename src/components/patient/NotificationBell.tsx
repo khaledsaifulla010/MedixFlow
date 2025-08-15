@@ -54,7 +54,6 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ patientId }) => {
   const handleOpenChange = async (open: boolean) => {
     setIsOpen(open);
     if (!open && notifications.length > 0) {
-      // Mark as read
       try {
         await fetch(`/api/patient/notifications/markRead`, {
           method: "POST",

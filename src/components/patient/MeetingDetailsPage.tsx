@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useGetPatientAppointmentsQuery, Appointment } from "@/services/appointmentApi";
+import {  Appointment, useGetAppointmentsQuery } from "@/services/appointmentApi";
 import { format } from "date-fns";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,11 @@ import {
 } from "lucide-react";
 
 const MeetingDetailsPage: React.FC = () => {
-  const { data: appointments = [], isLoading, isError } = useGetPatientAppointmentsQuery();
+  const {
+    data: appointments = [],
+    isLoading,
+    isError,
+  } = useGetAppointmentsQuery();
 
   if (isLoading) return <div>Loading appointments...</div>;
   if (isError) return <div>Error fetching appointments.</div>;
@@ -23,7 +27,6 @@ const MeetingDetailsPage: React.FC = () => {
 
   return (
     <div className="p-4">
-      <h1 className="text-3xl font-bold mb-6">Your Appointments</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {appointments.map((appt: Appointment) => {
           const start = new Date(appt.startTime);

@@ -1,4 +1,3 @@
-// services/doctorAvailabilitiesApi.ts
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export interface DoctorAvailability {
@@ -27,14 +26,13 @@ export interface DoctorAvailability {
 
 export const doctorAvailabilitiesApi = createApi({
   reducerPath: "doctorAvailabilitiesApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "/api" }),
+  baseQuery: fetchBaseQuery({ baseUrl: "/api/doctor/available" }),
   endpoints: (builder) => ({
     getDoctorAvailabilities: builder.query<
       { success: boolean; data: DoctorAvailability[] },
-      string | void
+      void
     >({
-      query: (doctorId) =>
-        doctorId ? `doctor/available?doctorId=${doctorId}` : `doctor/available`,
+      query: () => "",
     }),
   }),
 });
