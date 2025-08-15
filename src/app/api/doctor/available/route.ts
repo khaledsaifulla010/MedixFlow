@@ -1,35 +1,33 @@
-import { NextResponse } from "next/server";
+
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    // Get all users with role "doctor" including their profile and availabilities
-    const doctors = await prisma.user.findMany({
-      where: { role: "doctor" },
+    const { searchParams } = new URL(req.url);
+    const doctorId = searchParams.get("doctorId");
+
+    const whereClause = doctorId ? { doctorId } : {};
+
+    const availabilities = await prisma.doctorAvailability.findMany({
+      where: whereClause,
       include: {
-        doctorProfile: {
-          include: { availabilities: true },
+        doctor: {
+          include: {
+            user: true,
+          },
         },
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
 
-    // Format response
-    const response = doctors.map((doc) => ({
-      id: doc.id,
-      name: doc.name,
-      email: doc.email,
-      phone: doc.phone,
-      dob: doc.dob,
-      speciality: doc.doctorProfile?.speciality,
-      degree: doc.doctorProfile?.degree,
-      availabilities: doc.doctorProfile?.availabilities ?? [],
-    }));
-
-    return NextResponse.json(response);
-  } catch (error: any) {
-    console.error("Fetch available doctors error:", error);
+    return NextResponse.json({ success: true, data: availabilities });
+  } catch (error) {
+    console.error("Error fetching doctor availabilities:", error);
     return NextResponse.json(
-      { message: error.message || "Server error" },
+      { success: false, message: "Failed to fetch doctor availabilities" },
       { status: 500 }
     );
   }

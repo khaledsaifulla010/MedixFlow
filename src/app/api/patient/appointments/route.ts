@@ -111,6 +111,60 @@ export async function POST(req: Request) {
   }
 }
 
+// export async function GET() {
+//   try {
+//     const appointments = await prisma.appointment.findMany({
+//       include: {
+//         doctor: {
+//           select: {
+//             id: true,
+//             speciality: true,
+//             degree: true,
+//             user: {
+//               select: {
+//                 name: true,
+//                 email: true,
+//                 phone: true,
+//               },
+//             },
+//           },
+//         },
+//         patient: {
+//           select: {
+//             id: true,
+
+//             user: {
+//               select: {
+//                 name: true,
+//                 email: true,
+//                 phone: true,
+//               },
+//             },
+//           },
+//         },
+//       },
+//     });
+
+//     const availabilities = await prisma.doctorAvailability.findMany({
+//       include: {
+//         doctor: {
+//           select: {
+//             id: true,
+//             speciality: true,
+//             user: { select: { name: true } },
+//           },
+//         },
+//       },
+//     });
+
+//     return NextResponse.json({ appointments, availabilities });
+//   } catch (err) {
+//     console.error("GET /api/patient/appointments error:", err);
+//     return NextResponse.json({ error: "Server error" }, { status: 500 });
+//   }
+// }
+
+
 export async function GET() {
   try {
     const appointments = await prisma.appointment.findMany({
@@ -132,7 +186,6 @@ export async function GET() {
         patient: {
           select: {
             id: true,
-
             user: {
               select: {
                 name: true,
@@ -146,7 +199,14 @@ export async function GET() {
     });
 
     const availabilities = await prisma.doctorAvailability.findMany({
-      include: {
+      select: {
+        id: true,
+        doctorId: true, // ✅ ensure available directly
+        isRecurring: true,
+        dayOfWeek: true,
+        date: true,
+        startTime: true,
+        endTime: true,
         doctor: {
           select: {
             id: true,
@@ -157,9 +217,19 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ appointments, availabilities });
+    // ✅ Convert date strings to Date objects
+    const formattedAvailabilities = availabilities.map((a) => ({
+      ...a,
+      date: a.date ? new Date(a.date) : null,
+    }));
+
+    return NextResponse.json({
+      appointments,
+      availabilities: formattedAvailabilities,
+    });
   } catch (err) {
     console.error("GET /api/patient/appointments error:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
+

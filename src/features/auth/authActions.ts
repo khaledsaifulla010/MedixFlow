@@ -1,16 +1,20 @@
 import { AppDispatch } from "@/store/store";
 import { logout, setCredentials } from "./authSlice";
 import axiosInstance from "@/services/api";
-import { AuthResponse } from "@/types/auth";
 
 //  Register as a Patient //
-export const registerUser =
+interface AuthResponse {
+  user: any;
+  accessToken: string;
+  refreshToken: string;
+}
+
+export const registerPatient =
   (userData: {
     name: string;
     email: string;
     phone: string;
-    dob: string;
-    role: string;
+    dob: Date;
     password: string;
   }) =>
   async (
@@ -18,8 +22,8 @@ export const registerUser =
   ): Promise<{ success: boolean; user?: any; message?: string }> => {
     try {
       const { data } = await axiosInstance.post<AuthResponse>(
-        "/auth/register",
-        userData
+        "/auth/register/patient",
+        { ...userData, role: "patient" }
       );
 
       localStorage.setItem("accessToken", data.accessToken);
@@ -47,6 +51,7 @@ export const registerUser =
     }
   };
 
+  
 // Register as a Doctor //
 interface Availability {
   isRecurring: boolean;
@@ -78,11 +83,17 @@ export const registerDoctor =
         "api/doctor/register",
         doctorData
       );
+
+      // Save tokens
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
+
+      // Set default Authorization header for future requests
       axiosInstance.defaults.headers.common[
         "Authorization"
       ] = `Bearer ${data.accessToken}`;
+
+      // Update Redux state
       dispatch(
         setCredentials({
           user: data.user,
