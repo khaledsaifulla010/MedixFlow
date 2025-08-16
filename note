@@ -94,24 +94,4 @@ model Appointment {
   // Relations
   doctor     DoctorProfile   @relation("DoctorAppointments", fields: [doctorId], references: [id])
   patient    PatientProfile  @relation("PatientAppointments", fields: [patientId], references: [id])
-
-  // Prescription relation
-  prescriptions Prescription[] @relation("AppointmentPrescriptions")
 }
-
-model Prescription {
-  id            String          @id @default(cuid())
-  appointmentId String
-  name          String
-  type          String
-  dosage        String
-  dosageTime    String
-  duration      String
-  advice        String?
-  followUp      String?
-  createdAt     DateTime        @default(now())
-
-  // Relations
-  appointment   Appointment     @relation("AppointmentPrescriptions", fields: [appointmentId], references: [id])
-}
-

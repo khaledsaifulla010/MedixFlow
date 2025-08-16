@@ -79,7 +79,7 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
     ],
     MANAGE: [
       {
-        name: "Appointment",
+        name: "Appointments",
         href: "/dashboard/patient/appointment",
         icon: Calendar,
       },
@@ -89,7 +89,11 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
         href: "/dashboard/patient/medical-history",
         icon: FileClock,
       },
-      { name: "Prescriptions", href: "/prescriptions", icon: FileText },
+      {
+        name: "Prescriptions",
+        href: "/dashboard/patient/prescriptions",
+        icon: FileText,
+      },
     ],
     SYSTEM: [
       { name: "Messages", href: "/messages", icon: MessageSquare },

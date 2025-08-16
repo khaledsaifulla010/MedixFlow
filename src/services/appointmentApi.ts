@@ -19,6 +19,7 @@ export interface Availability {
 }
 
 export interface Appointment {
+  isEmergency: any;
   id: string;
   doctorId: string;
   patientId: string;
