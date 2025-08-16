@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  doctor
+  patient
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String
+  dob       DateTime
+  role      Role
+  password  String
+  createdAt DateTime @default(now())
+
+  // Relations
+  adminProfile   AdminProfile?
+  doctorProfile  DoctorProfile?
+  patientProfile PatientProfile?
+}
+
+model AdminProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model DoctorProfile {
+  id          String                  @id @default(cuid())
+  userId      String                  @unique
+  user        User                    @relation(fields: [userId], references: [id])
+  speciality  String
+  degree      String
+  createdAt   DateTime                @default(now())
+
+  // Relations
+  appointments   Appointment[]        @relation("DoctorAppointments")
+  availabilities DoctorAvailability[]
+}
+
+model DoctorAvailability {
+  id        String        @id @default(cuid())
+  doctor    DoctorProfile @relation(fields: [doctorId], references: [id])
+  doctorId  String
+  isRecurring Boolean     @default(false)
+  dayOfWeek   Int?        // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  date        String?     // nullable for single-date availability
+  startTime   String
+  endTime     String
+  createdAt   DateTime    @default(now())
+}
+
+model PatientProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  // Relations
+  histories    MedicalHistory[]
+  appointments Appointment[] @relation("PatientAppointments")
+}
+
+model MedicalHistory {
+  id               String         @id @default(cuid())
+  patientProfileId String
+  allergies        String?
+  pastTreatments   String?
+  files            String[]       // Array of file URLs
+  createdAt        DateTime       @default(now())
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+}
+
+model Appointment {
+  id         String          @id @default(cuid())
+  doctorId   String
+  patientId  String
+  startTime  DateTime
+  endTime    DateTime
+  createdAt  DateTime        @default(now())
+  isRead     Boolean         @default(false)
+
+  // Relations
+  doctor     DoctorProfile   @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  patient    PatientProfile  @relation("PatientAppointments", fields: [patientId], references: [id])
+}

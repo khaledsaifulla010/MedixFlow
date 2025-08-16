@@ -7,7 +7,6 @@ interface AuthState {
   refreshToken: string | null;
 }
 
-// Load from localStorage if available
 const storedAuth =
   typeof window !== "undefined" ? localStorage.getItem("auth") : null;
 const parsedAuth = storedAuth ? JSON.parse(storedAuth) : null;
@@ -33,8 +32,6 @@ const authSlice = createSlice({
       state.user = action.payload.user;
       state.accessToken = action.payload.accessToken;
       state.refreshToken = action.payload.refreshToken;
-
-      // Save to localStorage
       localStorage.setItem(
         "auth",
         JSON.stringify({
@@ -52,6 +49,5 @@ const authSlice = createSlice({
     },
   },
 });
-
 export const { setCredentials, logout } = authSlice.actions;
 export default authSlice.reducer;
