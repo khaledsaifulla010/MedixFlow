@@ -1,0 +1,282 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  doctor
+  patient
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  phone     String
+  dob       DateTime
+  role      Role
+  password  String
+  createdAt DateTime @default(now())
+
+  // Relations
+  adminProfile   AdminProfile?
+  doctorProfile  DoctorProfile?
+  patientProfile PatientProfile?
+}
+
+model AdminProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model DoctorProfile {
+  id          String                  @id @default(cuid())
+  userId      String                  @unique
+  user        User                    @relation(fields: [userId], references: [id])
+  speciality  String
+  degree      String
+  createdAt   DateTime                @default(now())
+
+  // Relations
+  appointments   Appointment[]        @relation("DoctorAppointments")
+  availabilities DoctorAvailability[]
+}
+
+model DoctorAvailability {
+  id        String        @id @default(cuid())
+  doctor    DoctorProfile @relation(fields: [doctorId], references: [id])
+  doctorId  String
+  isRecurring Boolean     @default(false)
+  dayOfWeek   Int?        // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  date        String?     // nullable for single-date availability
+  startTime   String
+  endTime     String
+  createdAt   DateTime    @default(now())
+}
+
+model PatientProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  // Relations
+  histories    MedicalHistory[]
+  appointments Appointment[] @relation("PatientAppointments")
+}
+
+model MedicalHistory {
+  id               String         @id @default(cuid())
+  patientProfileId String
+  allergies        String?
+  pastTreatments   String?
+  files            String[]       // Array of file URLs
+  createdAt        DateTime       @default(now())
+  patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
+}
+
+model Appointment {
+  id         String          @id @default(cuid())
+  doctorId   String
+  patientId  String
+  startTime  DateTime
+  endTime    DateTime
+  createdAt  DateTime        @default(now())
+  isRead     Boolean         @default(false)
+
+  // Relations
+  doctor     DoctorProfile   @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  patient    PatientProfile  @relation("PatientAppointments", fields: [patientId], references: [id])
+}
+
+
+
+
+
+// -----------------------------------------Socket.io--------------------------------------//
+
+import { createServer } from "node:http";
+import next from "next";
+import { Server } from "socket.io";
+
+const dev = process.env.NODE_ENV !== "production";
+const hostname = "localhost";
+const port = 3000;
+// when using middleware `hostname` and `port` must be provided below
+const app = next({ dev, hostname, port });
+const handler = app.getRequestHandler();
+
+app.prepare().then(() => {
+  const httpServer = createServer(handler);
+  const io = new Server(httpServer);
+
+  // All online users
+  let onlineServer = [];
+  io.on("connection", (socket) => {
+    // User Connected
+    socket.on("addNewUser", (user) => {
+      const newUser = {
+        socketId: socket.id,
+        userId: user.id,
+        userName: user.name,
+        userEmail: user.email,
+        userRole: user.role,
+      };
+
+      console.log(" New user added:", newUser);
+      onlineServer.push(newUser);
+      //   Send active users
+      io.emit("getUsers", onlineServer);
+    });
+    // User Disconnected
+    socket.on("disconnect", () => {
+      console.log("Client Disconnected:", socket.id);
+      onlineServer = onlineServer.filter((user) => user.socketId !== socket.id);
+      //   Send active users
+      io.emit("getUsers", onlineServer);
+    });
+  });
+
+  httpServer
+    .once("error", (err) => {
+      console.error(err);
+      process.exit(1);
+    })
+    .listen(port, () => {
+      console.log(`> Ready on http://${hostname}:${port}`);
+    });
+});
+
+
+// --------------------------------SocketContext.jsx-----------------------
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import { useSelector } from "react-redux";
+import { io, Socket } from "socket.io-client";
+import { OngoingCall, SocketUser } from "../types";
+import { User } from "@/types/auth";
+
+interface iSocketContext {
+  onlineUsers: SocketUser[] | null;
+  user: User | null;
+  isSocketConnected: boolean;
+}
+export const SocketContext = createContext<iSocketContext | null>(null);
+export const SocketContextProvider = ({
+  children,
+}: {
+  children: React.ReactNode;
+}) => {
+  const user = useSelector((state: any) => state.auth.user);
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState<SocketUser[] | null>(null);
+  const [ongoingCall, setOngoingCall] = useState<OngoingCall | null>(null);
+  const currentSocketUser = onlineUsers?.find(
+    (onlineUser) => onlineUser.userId === user?.id
+  );
+
+  const handleCall = useCallback(() => {
+    if (!currentSocketUser) return;
+
+    const participants = { caller: currentSocketUser, receiver: user };
+    setOngoingCall({
+      participants,
+      isRinging: false,
+    });
+    socket?.emit('call',participants)
+  }, [socket, currentSocketUser, ongoingCall]);
+
+  console.log("IsConnected", isSocketConnected);
+  console.log("User is", onlineUsers);
+
+  // ---------- Initialize socket ---------- //
+  useEffect(() => {
+    if (!user) return;
+    const token = localStorage.getItem("accessToken");
+    const newSocket = io({
+      auth: { token },
+      query: { userId: user.id },
+    });
+    newSocket.on("connect", () => {
+      console.log("Socket connected:", newSocket.id);
+      newSocket.emit("addNewUser", user);
+    });
+    setSocket(newSocket);
+
+    return () => {
+      newSocket.disconnect();
+    };
+  }, [user]);
+  // ---------- Socket connect/disconnect handling ---------- //
+  useEffect(() => {
+    if (socket === null) return;
+
+    if (socket.connected) {
+      onConnect();
+    }
+    function onConnect() {
+      setIsSocketConnected(true);
+    }
+
+    function onDisconnect() {
+      setIsSocketConnected(false);
+    }
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+    };
+  }, [socket]);
+
+  // ---------- Set online users ---------- //
+  useEffect(() => {
+    if (!socket || !isSocketConnected) return;
+    socket.emit("addNewUser", user);
+    socket.on("getUsers", (res) => {
+      setOnlineUsers(res);
+    });
+    return () => {
+      socket.off("getUsers", (res) => {
+        setOnlineUsers(res);
+      });
+    };
+  }, [socket, isSocketConnected, user]);
+
+  return (
+    <SocketContext.Provider
+      value={{
+        onlineUsers,
+
+        user,
+        isSocketConnected,
+      }}
+    >
+      {children}
+    </SocketContext.Provider>
+  );
+};
+// ---------- Custom hook ---------- //
+export const useSocket = () => {
+  const context = useContext(SocketContext);
+  if (context === null) {
+    throw new Error("useSocket must be sed within a SocketContextProvider");
+  }
+  return context;
+};
+
