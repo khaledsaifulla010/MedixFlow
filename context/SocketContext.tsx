@@ -281,7 +281,6 @@ export const SocketContextProvider = ({
   const switchCamera = useCallback(
     async (deviceId: string) => {
       try {
-        // Get ONLY a new VIDEO track from selected device
         const camOnly = await navigator.mediaDevices.getUserMedia({
           video: { deviceId: { exact: deviceId } },
           audio: false,
@@ -289,53 +288,66 @@ export const SocketContextProvider = ({
         const newVideoTrack = camOnly.getVideoTracks()[0];
         if (!newVideoTrack) return;
 
-        // If we don't have a local stream yet, create one merging current audio (if any)
-        if (!localStream) {
-          const audioOnly = await navigator.mediaDevices.getUserMedia({
-            audio: true,
-            video: false,
-          });
-          const merged = new MediaStream([
-            ...audioOnly.getAudioTracks(),
-            newVideoTrack,
-          ]);
-          setLocalStream(merged);
-          setActiveDeviceId(deviceId);
-          return;
-        }
+        const ensureLocalStream = async (): Promise<MediaStream> => {
+          if (localStream && localStream.id) return localStream;
 
-        // Replace track inside the existing stream
-        const oldVideoTrack = localStream.getVideoTracks()[0] || null;
-        if (oldVideoTrack) {
-          localStream.removeTrack(oldVideoTrack);
-          oldVideoTrack.stop();
-        }
-        localStream.addTrack(newVideoTrack);
-
-        // If we have an active peer, replace the sender track WITHOUT renegotiation
-        if (
-          peer?.peerConnection &&
-          !peer.peerConnection.destroyed &&
-          oldVideoTrack
-        ) {
+          let audioTracks: MediaStreamTrack[] = [];
           try {
-            peer.peerConnection.replaceTrack(
-              oldVideoTrack,
-              newVideoTrack,
-              localStream
-            );
-          } catch (e) {
-            console.error(
-              "replaceTrack failed; connection will continue but may need rejoin:",
-              e
-            );
+            const audioOnly = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+              video: false,
+            });
+            audioTracks = audioOnly.getAudioTracks();
+          } catch {}
+          const fresh = new MediaStream([...audioTracks, newVideoTrack]);
+          setLocalStream(fresh);
+          return fresh;
+        };
+
+        const stream = await ensureLocalStream();
+
+        const oldVideoTrack = stream.getVideoTracks()[0] || null;
+
+        if (peer?.peerConnection && !peer.peerConnection.destroyed) {
+          let replaced = false;
+
+          if (oldVideoTrack) {
+            try {
+              peer.peerConnection.replaceTrack(
+                oldVideoTrack,
+                newVideoTrack,
+                stream
+              );
+              replaced = true;
+            } catch (e) {}
+          }
+
+          if (!replaced) {
+            try {
+              peer.peerConnection.addTrack(newVideoTrack, stream);
+            } catch (e) {
+              console.error(
+                "addTrack failed; you may need to re-negotiate/join",
+                e
+              );
+            }
           }
         }
 
-        // Update state
-        setLocalStream(
-          new MediaStream([...localStream.getAudioTracks(), newVideoTrack])
-        );
+        // 4) Update the local MediaStream CONTENT (keep the same object!)
+        if (oldVideoTrack && oldVideoTrack !== newVideoTrack) {
+          stream.removeTrack(oldVideoTrack); // remove from stream
+          oldVideoTrack.stop(); // now safe to stop
+        }
+        // Add new if not already present
+        const hasNew = stream
+          .getVideoTracks()
+          .some((t) => t.id === newVideoTrack.id);
+        if (!hasNew) stream.addTrack(newVideoTrack);
+
+        // 5) Reflect state (keep the SAME stream object reference in state)
+        //    We call setLocalStream with the same instance to keep React in sync.
+        setLocalStream(stream);
         setActiveDeviceId(deviceId);
       } catch (err) {
         console.error("Switch camera failed", err);

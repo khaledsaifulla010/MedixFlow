@@ -88,16 +88,13 @@ const VideoCallWithChat = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // NEW: end call + return to previous page, with safe fallback by role
   const endCallAndReturn = useCallback(() => {
     try {
       endCall();
     } finally {
-      // If user navigated here via router.push, there's a history entry
       if (typeof window !== "undefined" && window.history.length > 1) {
         router.back();
       } else {
-        // Fallback if opened directly: route per role
         const fallback =
           user?.role === "doctor"
             ? "/dashboard/doctor/patient-queue"
@@ -109,13 +106,9 @@ const VideoCallWithChat = () => {
 
   return (
     <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6">
-      {/* Content area: video on left, chat on right */}
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 ">
-        {/* LEFT: Video area */}
         <div className="flex-1 min-w-0 border-2 rounded-md">
-          {/* Large remote video wrapper */}
           <div className="relative w-full aspect-video rounded-xl overflow-hidden shadow-xl">
-            {/* Remote (large) */}
             {peer?.stream ? (
               remoteVidOn ? (
                 <VideoContainer
@@ -135,8 +128,6 @@ const VideoCallWithChat = () => {
                 Connecting to remote…
               </div>
             )}
-
-            {/* Local PiP (bottom-right inside large) */}
             {localStream && (
               <div className="absolute right-3 bottom-3 w-[28%] max-w-[240px] min-w-[120px] aspect-video rounded-lg overflow-hidden ring-2 ring-white/50 shadow-lg bg-black">
                 {isVidOn ? (
@@ -152,8 +143,6 @@ const VideoCallWithChat = () => {
                 )}
               </div>
             )}
-
-            {/* Labels in the corner (optional) */}
             {peer?.stream && (
               <span className="absolute top-2 left-2 text-white text-xs sm:text-sm font-semibold bg-black/50 px-2 py-0.5 rounded ">
                 {remoteUserRole === "doctor" ? "Doctor" : "Patient"}
@@ -165,8 +154,6 @@ const VideoCallWithChat = () => {
               </span>
             )}
           </div>
-
-          {/* Controls (centered) */}
           <div className="mt-16 flex flex-col items-center gap-3">
             <div className="flex flex-wrap items-center justify-center gap-3">
               <Button
@@ -203,8 +190,6 @@ const VideoCallWithChat = () => {
               >
                 <PhoneOff />
               </Button>
-
-              {/* Switch camera selector */}
               <div className="flex items-center gap-2">
                 <Camera className="w-5 h-5 text-gray-700" />
                 <Select
@@ -226,15 +211,10 @@ const VideoCallWithChat = () => {
             </div>
           </div>
         </div>
-
-        {/* RIGHT: Chat panel */}
         <div className="w-full lg:w-[360px] xl:w-[420px] flex flex-col bg-gray-900 text-white rounded-xl shadow-xl border-2">
-          {/* Chat header */}
           <div className="px-4 py-3 border-b border-gray-800 rounded-t-xl">
             <h2 className="text-base sm:text-lg font-semibold">Chat</h2>
           </div>
-
-          {/* Messages */}
           <div className="flex-1 min-h-[280px] max-h-[50vh] lg:max-h-[calc(100vh-320px)] overflow-y-auto p-3 space-y-2">
             {messages.map((msg, idx) => {
               const mine = msg.senderId === user?.id;
@@ -252,8 +232,6 @@ const VideoCallWithChat = () => {
             })}
             <div ref={chatEndRef} />
           </div>
-
-          {/* Composer */}
           <div className="p-3 border-t border-gray-800 rounded-b-xl">
             <div className="flex items-center gap-2">
               <input
@@ -261,7 +239,7 @@ const VideoCallWithChat = () => {
                 value={chatInput}
                 onChange={(e) => setChatInput(e.target.value)}
                 placeholder="Type a message…"
-                className="flex-1 rounded-lg px-3 py-2 text-black outline-none"
+                className="flex-1 rounded-lg px-3 py-2  outline-none"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSendMessage();
                 }}

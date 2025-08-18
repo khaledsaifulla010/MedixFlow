@@ -20,6 +20,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import LogoutButton from "@/components/authComponents/LogoutButton";
 
+
 type MenuItem = {
   name: string;
   href: string;
@@ -135,7 +136,6 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 h-screen sticky top-0 bg-white dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-800 flex flex-col">
-
       <div className="px-6 py-4 border-b-2 border-gray-200 dark:border-gray-800">
         <div className="flex flex-col items-center">
           <div className="block dark:hidden">
