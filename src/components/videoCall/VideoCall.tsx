@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useSocket } from "../../../context/SocketContext";
 import VideoContainer from "./VideoContainer";
 import { Button } from "../ui/button";
@@ -37,6 +38,8 @@ const VideoCallWithChat = () => {
     messages,
     sendMessage,
   } = useSocket();
+
+  const router = useRouter();
 
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVidOn, setIsVidOn] = useState(true);
@@ -84,6 +87,25 @@ const VideoCallWithChat = () => {
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // NEW: end call + return to previous page, with safe fallback by role
+  const endCallAndReturn = useCallback(() => {
+    try {
+      endCall();
+    } finally {
+      // If user navigated here via router.push, there's a history entry
+      if (typeof window !== "undefined" && window.history.length > 1) {
+        router.back();
+      } else {
+        // Fallback if opened directly: route per role
+        const fallback =
+          user?.role === "doctor"
+            ? "/dashboard/doctor/patient-queue"
+            : "/dashboard/patient/meeting";
+        router.push(fallback);
+      }
+    }
+  }, [endCall, router, user?.role]);
 
   return (
     <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6">
@@ -175,7 +197,7 @@ const VideoCallWithChat = () => {
               </Button>
 
               <Button
-                onClick={endCall}
+                onClick={endCallAndReturn}
                 className="min-w-[44px] h-11 bg-rose-600 hover:bg-rose-700 text-white"
                 title="End call"
               >

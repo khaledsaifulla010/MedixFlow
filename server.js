@@ -3,10 +3,11 @@ import next from "next";
 import { Server } from "socket.io";
 
 const dev = process.env.NODE_ENV !== "production";
-const hostname = "localhost";
-const port = 3000;
 
-const app = next({ dev, hostname, port });
+const PORT = parseInt(process.env.PORT || "3000", 10);
+const HOST = process.env.HOST || "0.0.0.0";
+
+const app = next({ dev });
 const handler = app.getRequestHandler();
 
 // In-memory room queues: roomId -> Map<userId, SocketUser>
@@ -19,8 +20,17 @@ function getRoomQueue(roomId) {
 }
 
 app.prepare().then(() => {
-  const httpServer = createServer(handler);
-  const io = new Server(httpServer, { cors: { origin: "*" } });
+  // Create one HTTP server for Next.js + Socket.IO
+  const httpServer = createServer((req, res) => handler(req, res));
+
+  const corsOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(",").map((s) => s.trim())
+    : "*";
+
+  const io = new Server(httpServer, {
+    cors: { origin: corsOrigins, methods: ["GET", "POST"], credentials: true },
+    path: "/socket.io",
+  });
 
   let onlineUsers = [];
 
@@ -123,7 +133,7 @@ app.prepare().then(() => {
           patient: normalizedPatient,
         });
       }
-      // If no doctor online, we keep patient in queue; patient UI remains "waiting".
+      // If no doctor online, patient stays queued; UI remains "waiting".
     });
 
     // Doctor approves a specific patient in a specific room
@@ -154,7 +164,7 @@ app.prepare().then(() => {
     });
   });
 
-  httpServer.listen(port, () => {
-    console.log(`> Ready on http://${hostname}:${port}`);
+  httpServer.listen(PORT, HOST, () => {
+    console.log(`> Ready on http://${HOST}:${PORT}`);
   });
 });
