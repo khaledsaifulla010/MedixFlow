@@ -26,7 +26,7 @@ import {
 import { useState } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { Delete, Loader, Trash, Trash2 } from "lucide-react";
+import {  Loader, Loader2, Trash2 } from "lucide-react";
 
 function formatRole(role: string) {
   return role.charAt(0).toUpperCase() + role.slice(1);
@@ -50,10 +50,9 @@ export default function AllUsersDetails() {
 
   if (isLoading) {
     return (
-      <div className="p-6 flex items-center justify-center">
-        <div className="animate-pulse text-sm text-gray-500 text-center">
-          Loading users…
-        </div>
+      <div className="font-bold text-xl mt-36 flex items-center justify-center gap-4">
+        Loading Users
+        <Loader2 className="animate-spin" />
       </div>
     );
   }
