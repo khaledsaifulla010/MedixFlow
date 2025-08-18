@@ -13,6 +13,7 @@ import {
   CalendarDays,
   FlaskConical,
   GraduationCap,
+  Loader2,
   UserStar,
   Video,
 } from "lucide-react";
@@ -30,9 +31,25 @@ const MeetingDetailsPage: React.FC = () => {
     router.push(`/dashboard/meeting/${id}`);
   };
 
-  if (isLoading) return <div>Loading appointments...</div>;
-  if (isError) return <div>Error fetching appointments.</div>;
-  if (!appointments.length) return <div>No appointments found.</div>;
+  if (isLoading)
+    return (
+      <div className="font-bold text-xl mt-36 flex items-center justify-center gap-4">
+        Loading Meetings
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+  if (isError)
+    return (
+      <div className="font-bold text-xl mt-36 text-center">
+        Error Fetching Meetings.
+      </div>
+    );
+  if (!appointments.length)
+    return (
+      <div className="font-bold text-xl mt-36 text-center">
+        No Meetings Found.
+      </div>
+    );
 
   return (
     <div className="p-4">

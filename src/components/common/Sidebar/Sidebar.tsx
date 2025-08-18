@@ -19,8 +19,6 @@ import {
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import LogoutButton from "@/components/authComponents/LogoutButton";
-
-
 type MenuItem = {
   name: string;
   href: string;
@@ -43,11 +41,8 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
         icon: CircleUser,
       },
     ],
-    MANAGE: [
-      { name: "Users", href: "/users", icon: Users },
-      { name: "Appointments", href: "/appointments", icon: Calendar },
-    ],
-    SYSTEM: [{ name: "Notifications", href: "/notifications", icon: Bell }],
+    MANAGE: [{ name: "Users", href: "/dashboard/admin/users", icon: Users }],
+    SYSTEM: [],
   },
   doctor: {
     MENU: [
@@ -64,10 +59,10 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
         href: "/dashboard/doctor/patient-queue",
         icon: SquareStack,
       },
-      { name: "Video Calls", href: "/video", icon: Video },
+
       { name: "EHR Records", href: "/ehr", icon: FileText },
     ],
-    SYSTEM: [{ name: "Messages", href: "/messages", icon: MessageSquare }],
+    SYSTEM: [],
   },
   patient: {
     MENU: [
@@ -97,7 +92,6 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
       },
     ],
     SYSTEM: [
-      { name: "Messages", href: "/messages", icon: MessageSquare },
       {
         name: "Notifications",
         href: "/dashboard/patient/notifications",

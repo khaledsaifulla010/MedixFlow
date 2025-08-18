@@ -88,7 +88,7 @@ const AdminProfilePage = () => {
         </div>
       )}
       {!user && (
-        <div className="font-bold text-xl mt-24 flex items-center justify-center gap-4">
+        <div className="font-bold text-xl mt-36 flex items-center justify-center gap-4">
           Loading Admin Profile <Loader2Icon className="animate-spin" />
         </div>
       )}

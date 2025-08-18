@@ -3,7 +3,7 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { UserCircle, Mail, Phone, Cake } from "lucide-react";
+import { UserCircle, Mail, Phone, Cake, Loader2Icon } from "lucide-react";
 
 interface User {
   id: string;
@@ -84,7 +84,11 @@ const PatientProfilePage = () => {
           </Card>
         </div>
       )}
-      {!user && <div>Loading user profile...</div>}
+      {!user && (
+        <div className="font-bold text-xl mt-36 flex items-center justify-center gap-4">
+          Loading Patient Profile <Loader2Icon className="animate-spin" />
+        </div>
+      )}
     </div>
   );
 };
