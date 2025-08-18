@@ -100,18 +100,27 @@ model Appointment {
 }
 
 model Prescription {
-  id            String          @id @default(cuid())
+  id            String              @id @default(cuid())
   appointmentId String
-  name          String
-  type          String
-  dosage        String
-  dosageTime    String
-  duration      String
   advice        String?
   followUp      String?
-  createdAt     DateTime        @default(now())
+  createdAt     DateTime            @default(now())
 
   // Relations
-  appointment   Appointment     @relation("AppointmentPrescriptions", fields: [appointmentId], references: [id])
+  appointment   Appointment         @relation("AppointmentPrescriptions", fields: [appointmentId], references: [id])
+  items         PrescriptionItem[]
+}
+
+model PrescriptionItem {
+  id             String   @id @default(cuid())
+  prescriptionId String
+  name           String
+  type           String
+  dosage         String
+  dosageTime     String
+  duration       String
+  createdAt      DateTime @default(now())
+
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
 }
 

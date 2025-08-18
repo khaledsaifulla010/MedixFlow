@@ -13,15 +13,16 @@ import {
 export type Medicine = {
   name: string;
   type: string;
-  dosage: string; // e.g., "1 + 1 + 1"
-  dosageTime: string; // e.g., "Morning, -, -" or "Morning, Evening, -"
-  duration: string; // e.g., "10 Days"
+  dosage: string;
+  dosageTime: string;
+  duration: string;
 };
 
 export type PrescriptionData = {
   doctor: {
     name: string;
     degree: string;
+    speciality: string;
     email: string;
     mobile: string;
   };
@@ -38,7 +39,6 @@ export type PrescriptionData = {
     phone: string;
     email: string;
   };
-  /** If omitted, today's date is rendered in strict format "27 Apr 2027, Time : 4:10 PM" */
   date?: string;
   medicines: Medicine[];
   advice: string[];
@@ -49,7 +49,6 @@ export type PrescriptionData = {
 const styles = StyleSheet.create({
   page: { padding: 24, fontSize: 11, fontFamily: "Helvetica", color: "#111" },
 
-  // 1) Top: left doctor — center logo — right clinic, spaced & centered
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -62,10 +61,8 @@ const styles = StyleSheet.create({
   clinicName: { fontSize: 12, fontWeight: "bold" },
   logo: { width: 56, height: 56, objectFit: "contain" },
 
-  // 2,5,7,9) horizontal lines
   hr: { height: 1, backgroundColor: "#000", marginBottom: 10, marginTop: 10 },
 
-  // 3,4) Patient info (only name/phone/email) and right-aligned strict date
   patientRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -76,12 +73,11 @@ const styles = StyleSheet.create({
   },
   patientBlock: { gap: 2 },
 
-  // 6) Suggested medicines table
   table: {
     borderWidth: 1,
     borderColor: "#000",
     marginTop: 6,
-    borderRadius: "4px",
+    borderRadius: 4,
   },
   tableRow: { flexDirection: "row", borderBottomWidth: 1, borderColor: "#000" },
   th: {
@@ -103,23 +99,20 @@ const styles = StyleSheet.create({
 
   sectionTitle: { fontSize: 14, fontWeight: "bold", marginTop: 8 },
 
-  // 8) Advice justified text
   adviceLine: {
     textAlign: "justify",
     marginBottom: 8,
-    padding: "10px",
     fontSize: 12,
   },
   adviceBorder: {
     borderWidth: 1,
     borderColor: "#000",
-    height: "300px",
-    marginTop: "4px",
-    marginBottom: "20px",
-    borderRadius: "4px",
+    minHeight: 120,
+    marginTop: 4,
+    marginBottom: 20,
+    borderRadius: 4,
+    padding: 10,
   },
-
-  // 11) Footer signature bottom-right
   footerSignWrap: {
     position: "absolute",
     right: 24,
@@ -142,7 +135,6 @@ const styles = StyleSheet.create({
   },
 });
 
-/** ---------- Helpers ---------- **/
 const strictNow = () => {
   const d = new Date();
   const dd = d.getDate().toString().padStart(2, "0");
@@ -168,15 +160,12 @@ const strictNow = () => {
   const mm = d.getMinutes().toString().padStart(2, "0");
   return `${dd} ${mon} ${yyyy}, Time : ${hh}:${mm} ${ampm}`;
 };
-
-/** ---------- Component ---------- **/
 export default function PrescriptionPDF({ data }: { data: PrescriptionData }) {
   const dateStr = data.date || strictNow();
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* 1) Header */}
         <View style={styles.headerRow}>
           <View style={styles.headerLeft}>
             <Text style={styles.docName}>{data.doctor.name}</Text>
@@ -202,17 +191,14 @@ export default function PrescriptionPDF({ data }: { data: PrescriptionData }) {
           </View>
         </View>
 
-        {/* 2) HR */}
         <View style={styles.hr} />
 
-        {/* 3 & 4) Patient info + strict date on right */}
         <View style={styles.patientRow}>
           <View style={styles.patientBlock}>
             <Text style={styles.patientText}>
               Patient Name : {data.patient.name}
             </Text>
             <Text style={styles.patientText}>
-              {" "}
               Mobile No : {data.patient.phone}
             </Text>
             <Text style={styles.patientText}>Email : {data.patient.email}</Text>
@@ -220,10 +206,8 @@ export default function PrescriptionPDF({ data }: { data: PrescriptionData }) {
           <Text style={styles.patientText}>Date : {dateStr}</Text>
         </View>
 
-        {/* 5) HR */}
         <View style={styles.hr} />
 
-        {/* 6) Suggested Medicines */}
         <Text style={styles.sectionTitle}>Suggested Medicines</Text>
         <View style={styles.table}>
           <View style={styles.tableRow}>
@@ -238,7 +222,7 @@ export default function PrescriptionPDF({ data }: { data: PrescriptionData }) {
           {data.medicines.map((m, i) => (
             <View key={i} style={styles.tableRow}>
               <Text style={styles.tdSmall}>{i + 1}</Text>
-              <Text style={styles.th}>{m.type}</Text>
+              <Text style={styles.td}>{m.type}</Text>
               <Text style={styles.td}>{m.name}</Text>
               <Text style={styles.td}>{m.dosage}</Text>
               <Text style={styles.td}>{m.dosageTime}</Text>
@@ -247,23 +231,18 @@ export default function PrescriptionPDF({ data }: { data: PrescriptionData }) {
           ))}
         </View>
 
-        {/* 7) HR */}
         <View style={styles.hr} />
 
-        {/* 8) Advice (justified) */}
         <Text style={styles.sectionTitle}>Advice</Text>
-        <div style={styles.adviceBorder}>
+        <View style={styles.adviceBorder}>
           {data.advice.map((line, idx) => (
             <Text key={idx} style={styles.adviceLine}>
               {line}
             </Text>
           ))}
-        </div>
-
-        {/* 10) Follow up */}
+        </View>
         <Text style={styles.sectionTitle}>Follow Up Time: {data.followUp}</Text>
 
-        {/* 11) Footer Signature (bottom-right) */}
         <View style={styles.footerSignWrap}>
           <Text
             style={[
