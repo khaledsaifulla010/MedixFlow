@@ -24,16 +24,8 @@ model User {
   createdAt DateTime @default(now())
 
   // Relations
-  adminProfile   AdminProfile?
   doctorProfile  DoctorProfile?
   patientProfile PatientProfile?
-}
-
-model AdminProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
 }
 
 model DoctorProfile {
