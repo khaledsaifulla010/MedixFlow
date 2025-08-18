@@ -9,6 +9,15 @@ const port = 3000;
 const app = next({ dev, hostname, port });
 const handler = app.getRequestHandler();
 
+// In-memory room queues: roomId -> Map<userId, SocketUser>
+const roomQueues = new Map();
+function getRoomQueue(roomId) {
+  if (!roomQueues.has(roomId)) {
+    roomQueues.set(roomId, new Map());
+  }
+  return roomQueues.get(roomId);
+}
+
 app.prepare().then(() => {
   const httpServer = createServer(handler);
   const io = new Server(httpServer, { cors: { origin: "*" } });
@@ -65,34 +74,81 @@ app.prepare().then(() => {
       if (receiver) io.to(receiver.socketId).emit("receiveMessage", message);
     });
 
-    // ---------- Waiting Room ----------
-    socket.on("patientJoinRequest", ({ roomId, patient }) => {
-      const doctor = onlineUsers.find((u) => u.userRole === "doctor");
-      if (doctor) {
-        socket.join(roomId);
-        io.to(doctor.socketId).emit("patientJoinRequest", { roomId, patient });
-      } else {
-        socket.emit("noDoctorOnline");
+    // ---------- Meeting Room / Waiting Room ----------
+
+    // Doctor opens the meeting route
+    socket.on("doctorJoinRoom", ({ roomId, doctor }) => {
+      socket.join(roomId);
+
+      // Replay any waiting patients for this room to the doctor
+      const queue = getRoomQueue(roomId);
+      for (const [, patient] of queue.entries()) {
+        io.to(socket.id).emit("patientJoinRequest", { roomId, patient });
       }
+
+      io.to(roomId).emit("doctorPresent");
     });
 
-    socket.on("approvePatient", ({ patientId }) => {
+    // Patient requests to join a meeting room
+    socket.on("patientJoinRequest", ({ roomId, patient }) => {
+      socket.join(roomId);
+
+      // Normalize patient to SocketUser shape
+      const fromOnline =
+        onlineUsers.find(
+          (u) => u.userId === (patient?.id || patient?.userId)
+        ) || null;
+
+      const normalizedPatient = fromOnline
+        ? fromOnline
+        : {
+            socketId: socket.id,
+            userId: String(patient?.id || patient?.userId || ""),
+            userName: String(patient?.name || patient?.userName || ""),
+            userEmail: String(patient?.email || patient?.userEmail || ""),
+            userRole: String(patient?.role || patient?.userRole || "patient"),
+          };
+
+      // Add to the room queue (de-dupe by userId)
+      const queue = getRoomQueue(roomId);
+      if (normalizedPatient.userId) {
+        queue.set(normalizedPatient.userId, normalizedPatient);
+      }
+
+      // If a doctor is online, notify them (they may or may not be in room yet)
+      const doctor = onlineUsers.find((u) => u.userRole === "doctor");
+      if (doctor) {
+        io.to(doctor.socketId).emit("patientJoinRequest", {
+          roomId,
+          patient: normalizedPatient,
+        });
+      }
+      // If no doctor online, we keep patient in queue; patient UI remains "waiting".
+    });
+
+    // Doctor approves a specific patient in a specific room
+    socket.on("approvePatient", ({ roomId, patientId }) => {
       const patient = onlineUsers.find((u) => u.userId === patientId);
       const doctor = onlineUsers.find((u) => u.userRole === "doctor");
+
+      // Remove from queue if present
+      const queue = getRoomQueue(roomId);
+      queue.delete(patientId);
+
       if (patient && doctor) {
         const ongoingCall = {
           participants: { caller: patient, receiver: doctor },
           isRinging: false,
         };
-
-        // Emit to both
         io.to(patient.socketId).emit("callApproved", ongoingCall);
         io.to(doctor.socketId).emit("callApproved", ongoingCall);
       }
     });
 
+    socket.on("rejectPatient", ({ roomId, patientId }) => {
+      const queue = getRoomQueue(roomId);
+      queue.delete(patientId);
 
-    socket.on("rejectPatient", ({ patientId }) => {
       const patient = onlineUsers.find((u) => u.userId === patientId);
       if (patient) io.to(patient.socketId).emit("joinRejected");
     });

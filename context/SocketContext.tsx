@@ -1,5 +1,4 @@
 "use client";
-
 import {
   createContext,
   useCallback,
@@ -24,6 +23,7 @@ interface ChatMessage {
 interface iSocketContext {
   onlineUsers: SocketUser[] | null;
   user: User | null;
+  socket: Socket | null;
   isSocketConnected: boolean;
   handleCall: (user: SocketUser) => void;
   ongoingCall: OngoingCall | null;
@@ -36,8 +36,6 @@ interface iSocketContext {
   shareScreen: () => void;
   endCall: () => void;
   activeDeviceId: string | null;
-
-  // Chat
   messages: ChatMessage[];
   sendMessage: (text: string) => void;
 }
@@ -59,28 +57,66 @@ export const SocketContextProvider = ({
   const [remoteVidOn, setRemoteVidOn] = useState(true);
   const [activeDeviceId, setActiveDeviceId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [pendingSignals, setPendingSignals] = useState<SignalData[]>([]);
 
-  const currentSocketUser = onlineUsers?.find(
-    (onlineUser) => onlineUser.userId === user?.id
+  const currentSocketUser =
+    onlineUsers?.find((onlineUser) => onlineUser.userId === user?.id) ?? null;
+
+  const pickDefaultCameraId = (cams: MediaDeviceInfo[]) => {
+    const rx = /integrated|built[- ]?in|facetime|hd\s*webcam|default/i;
+    const byName = cams.find((d) => rx.test(d.label));
+    return (byName || cams[0])?.deviceId || null;
+  };
+
+  // ---------- Get Media Stream (prefers integrated cam) ----------
+  const getMediaStream = useCallback(
+    async (deviceId?: string) => {
+      try {
+        let stream: MediaStream | null = null;
+        const targetId = deviceId || activeDeviceId;
+
+        if (targetId) {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: { deviceId: { exact: targetId } },
+          });
+        } else {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: true,
+          });
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const cams = devices.filter((d) => d.kind === "videoinput");
+          if (cams.length > 0) {
+            const integratedId = pickDefaultCameraId(cams);
+            if (integratedId) {
+              const currentId = stream
+                .getVideoTracks()[0]
+                ?.getSettings()?.deviceId;
+              if (currentId !== integratedId) {
+                stream.getTracks().forEach((t) => t.stop());
+                stream = await navigator.mediaDevices.getUserMedia({
+                  audio: true,
+                  video: { deviceId: { exact: integratedId } },
+                });
+              }
+              setActiveDeviceId(integratedId);
+            }
+          }
+        }
+
+        setLocalStream(stream);
+        return stream;
+      } catch (error) {
+        console.log("Failed to get media stream", error);
+        setLocalStream(null);
+        return null;
+      }
+    },
+    [activeDeviceId]
   );
 
-  // ---------- Get Media Stream ----------
-  const getMediaStream = useCallback(async (deviceId?: string) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: deviceId ? { deviceId: { exact: deviceId } } : true,
-      });
-      setLocalStream(stream);
-      return stream;
-    } catch (error) {
-      console.log("Failed to get media stream", error);
-      setLocalStream(null);
-      return null;
-    }
-  }, []);
-
-  // ---------- Create Peer ----------
+  // ---------- Create Peer (REMOTE stream only) ----------
   const createPeer = useCallback(
     (stream: MediaStream, initiator: boolean, participantUser: SocketUser) => {
       const peerInstance = new Peer({ stream, initiator, trickle: true });
@@ -97,7 +133,7 @@ export const SocketContextProvider = ({
 
       return {
         peerConnection: peerInstance,
-        stream,
+        stream: undefined, // keep undefined until remote arrives
         participantUser,
         isCaller: initiator,
       };
@@ -105,7 +141,7 @@ export const SocketContextProvider = ({
     []
   );
 
-  // ---------- Handle Call ----------
+  // ---------- Handle Call (initiator) ----------
   const handleCall = useCallback(
     async (receiver: SocketUser) => {
       if (!currentSocketUser || !socket || !receiver.socketId) return;
@@ -137,27 +173,32 @@ export const SocketContextProvider = ({
     [socket, currentSocketUser, getMediaStream, activeDeviceId, createPeer]
   );
 
-  // ---------- Handle Join Call ----------
+  // ---------- Handle Join Call (callee) ----------
   const handleJoinCall = useCallback(
-    async (ongoingCall: OngoingCall) => {
+    async (call: OngoingCall) => {
       const stream = await getMediaStream(activeDeviceId || undefined);
       if (!stream) return;
 
-      const newPeer = createPeer(
-        stream,
-        false,
-        ongoingCall.participants.caller
-      );
+      const newPeer = createPeer(stream, false, call.participants.caller);
       setPeer(newPeer);
 
       newPeer.peerConnection.on("signal", (data: SignalData) => {
         if (!newPeer.peerConnection.destroyed) {
           socket?.emit("webrtcSignal", {
             sdp: data,
-            ongoingCall,
+            ongoingCall: call,
             isCaller: false,
           });
         }
+      });
+
+      // Drain any early SDPs
+      setPendingSignals((queued) => {
+        queued.forEach((sdp) => {
+          if (!newPeer.peerConnection.destroyed)
+            newPeer.peerConnection.signal(sdp);
+        });
+        return [];
       });
 
       setOngoingCall((prev) => (prev ? { ...prev, isRinging: false } : prev));
@@ -165,13 +206,16 @@ export const SocketContextProvider = ({
     [socket, getMediaStream, activeDeviceId, createPeer]
   );
 
-  // ---------- WebRTC Signal ----------
+  // ---------- WebRTC Signal (queue until peer ready) ----------
   useEffect(() => {
-    if (!socket || !peer?.peerConnection) return;
+    if (!socket) return;
 
     const handleSignal = (data: SignalData) => {
-      if (peer.peerConnection && !peer.peerConnection.destroyed) {
-        peer.peerConnection.signal(data);
+      const pc = peer?.peerConnection;
+      if (pc && !pc.destroyed) {
+        pc.signal(data);
+      } else {
+        setPendingSignals((prev) => [...prev, data]);
       }
     };
 
@@ -179,9 +223,9 @@ export const SocketContextProvider = ({
     return () => {
       socket.off("webrtcSignal", handleSignal);
     };
-  }, [socket, peer]);
+  }, [socket, peer?.peerConnection]);
 
-  // ---------- Socket Init ----------
+  // ---------- Socket lifecycle ----------
   useEffect(() => {
     if (!user) return;
     const token = localStorage.getItem("accessToken");
@@ -202,25 +246,22 @@ export const SocketContextProvider = ({
   // ---------- Online Users ----------
   useEffect(() => {
     if (!socket || !isSocketConnected) return;
-
     socket.emit("addNewUser", user);
     socket.on("getUsers", (res: SocketUser[]) => setOnlineUsers(res));
-
     return () => {
       socket.off("getUsers");
     };
   }, [socket, isSocketConnected, user]);
 
-  // ---------- Incoming Call ----------
+  // ---------- Incoming Call (ring) ----------
   const onInComingCall = useCallback((participants: Participants) => {
     setOngoingCall({ participants, isRinging: true });
   }, []);
-
   useEffect(() => {
     if (!socket) return;
     socket.on("inComingCall", onInComingCall);
     return () => {
-      socket.off("inComingCall");
+      socket.off("inComingCall", onInComingCall);
     };
   }, [socket, onInComingCall]);
 
@@ -236,54 +277,82 @@ export const SocketContextProvider = ({
     }
   }, [localStream, socket, user]);
 
-  // ---------- Switch Camera ----------
+  // ---------- 🚀 Switch Camera (use replaceTrack) ----------
   const switchCamera = useCallback(
     async (deviceId: string) => {
-      const newStream = await getMediaStream(deviceId);
-      if (!newStream || !peer) return;
-
       try {
-        if (peer.peerConnection && !peer.peerConnection.destroyed) {
-          peer.peerConnection.destroy();
+        // Get ONLY a new VIDEO track from selected device
+        const camOnly = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: deviceId } },
+          audio: false,
+        });
+        const newVideoTrack = camOnly.getVideoTracks()[0];
+        if (!newVideoTrack) return;
+
+        // If we don't have a local stream yet, create one merging current audio (if any)
+        if (!localStream) {
+          const audioOnly = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: false,
+          });
+          const merged = new MediaStream([
+            ...audioOnly.getAudioTracks(),
+            newVideoTrack,
+          ]);
+          setLocalStream(merged);
+          setActiveDeviceId(deviceId);
+          return;
         }
 
-        const newPeer = createPeer(
-          newStream,
-          peer.isCaller,
-          peer.participantUser
-        );
+        // Replace track inside the existing stream
+        const oldVideoTrack = localStream.getVideoTracks()[0] || null;
+        if (oldVideoTrack) {
+          localStream.removeTrack(oldVideoTrack);
+          oldVideoTrack.stop();
+        }
+        localStream.addTrack(newVideoTrack);
 
-        newPeer.peerConnection.on("signal", (data: SignalData) => {
-          if (!newPeer.peerConnection.destroyed) {
-            socket?.emit("webrtcSignal", {
-              sdp: data,
-              ongoingCall,
-              isCaller: peer.isCaller,
-            });
+        // If we have an active peer, replace the sender track WITHOUT renegotiation
+        if (
+          peer?.peerConnection &&
+          !peer.peerConnection.destroyed &&
+          oldVideoTrack
+        ) {
+          try {
+            peer.peerConnection.replaceTrack(
+              oldVideoTrack,
+              newVideoTrack,
+              localStream
+            );
+          } catch (e) {
+            console.error(
+              "replaceTrack failed; connection will continue but may need rejoin:",
+              e
+            );
           }
-        });
+        }
 
-        setPeer(newPeer);
-        setLocalStream(newStream);
+        // Update state
+        setLocalStream(
+          new MediaStream([...localStream.getAudioTracks(), newVideoTrack])
+        );
         setActiveDeviceId(deviceId);
       } catch (err) {
         console.error("Switch camera failed", err);
       }
     },
-    [peer, getMediaStream, socket, createPeer, ongoingCall]
+    [localStream, peer]
   );
 
   // ---------- Screen Sharing ----------
   const shareScreen = useCallback(async () => {
     if (!peer || !localStream) return;
-
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
       });
       const screenTrack = screenStream.getVideoTracks()[0];
       const cameraTrack = localStream.getVideoTracks()[0];
-
       peer.peerConnection.replaceTrack(cameraTrack, screenTrack, localStream);
 
       screenTrack.onended = async () => {
@@ -294,13 +363,18 @@ export const SocketContextProvider = ({
           audio: true,
         });
         const newCameraTrack = newCameraStream.getVideoTracks()[0];
-
         peer.peerConnection.replaceTrack(
           screenTrack,
           newCameraTrack,
           localStream
         );
-        setLocalStream(newCameraStream);
+
+        // update local stream to reflect camera restored
+        const rebuilt = new MediaStream([
+          ...localStream.getAudioTracks(),
+          newCameraTrack,
+        ]);
+        setLocalStream(rebuilt);
       };
     } catch (err) {
       console.error("Screen share failed", err);
@@ -315,6 +389,7 @@ export const SocketContextProvider = ({
       setPeer(null);
       setLocalStream(null);
       setOngoingCall(null);
+      setPendingSignals([]);
     } catch (err) {
       console.error("End call error", err);
     }
@@ -323,9 +398,10 @@ export const SocketContextProvider = ({
   // ---------- Remote video toggle ----------
   useEffect(() => {
     if (!socket) return;
-    socket.on("remoteVideoToggle", (isOn: boolean) => setRemoteVidOn(isOn));
+    const handler = (isOn: boolean) => setRemoteVidOn(isOn);
+    socket.on("remoteVideoToggle", handler);
     return () => {
-      socket.off("remoteVideoToggle");
+      socket.off("remoteVideoToggle", handler);
     };
   }, [socket]);
 
@@ -333,7 +409,6 @@ export const SocketContextProvider = ({
   const sendMessage = useCallback(
     (text: string) => {
       if (!socket || !user || !ongoingCall) return;
-
       const receiverId =
         ongoingCall.participants.caller.userId === user.id
           ? ongoingCall.participants.receiver.userId
@@ -346,26 +421,17 @@ export const SocketContextProvider = ({
         timestamp: Date.now(),
         receiverId,
       };
-
-      // Send to server
       socket.emit("sendMessage", message);
-
-      // Add locally
       setMessages((prev) => [...prev, message]);
     },
     [socket, user, ongoingCall]
   );
 
-  // Listen for incoming messages
   useEffect(() => {
     if (!socket) return;
-
-    const handleMessage = (msg: ChatMessage) => {
+    const handleMessage = (msg: ChatMessage) =>
       setMessages((prev) => [...prev, msg]);
-    };
-
     socket.on("receiveMessage", handleMessage);
-
     return () => {
       socket.off("receiveMessage", handleMessage);
     };
@@ -376,6 +442,7 @@ export const SocketContextProvider = ({
       value={{
         onlineUsers,
         handleCall,
+        socket,
         user,
         ongoingCall,
         isSocketConnected,
@@ -388,7 +455,6 @@ export const SocketContextProvider = ({
         shareScreen,
         endCall,
         activeDeviceId,
-
         messages,
         sendMessage,
       }}
