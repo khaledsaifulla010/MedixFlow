@@ -12,13 +12,18 @@ import {
 import { Button } from "@/components/ui/button";
 import { Video } from "lucide-react";
 import PrescriptionDialog from "./PrescriptionDialog";
+import { useRouter } from "next/navigation";
 
-const AppointmentsTable = () => {
+const PatientQueueDetails = () => {
   const {
     data: appointments = [],
     isLoading,
     isError,
   } = useGetAppointmentsQuery();
+  const router = useRouter();
+  const handleJoin = (id: string) => {
+    router.push(`/dashboard/meeting/${id}`);
+  };
 
   if (isLoading) return <div>Loading appointments...</div>;
   if (isError) return <div>Error fetching appointments.</div>;
@@ -76,15 +81,11 @@ const AppointmentsTable = () => {
                 </TableCell>
                 <TableCell>
                   <Button
-                    onClick={() =>
-                      window.open(
-                        `/dashboard/video-call/${appointment.id}`,
-                        "_blank"
-                      )
-                    }
+                    type="button"
+                    onClick={() => handleJoin(appointment.id)}
                     className="cursor-pointer"
                   >
-                    <Video className="mt-0.5" /> Join Meeting
+                    <Video className="mt-0.5 mr-2" /> Join Meeting
                   </Button>
                 </TableCell>
                 <TableCell>
@@ -103,4 +104,4 @@ const AppointmentsTable = () => {
   );
 };
 
-export default AppointmentsTable;
+export default PatientQueueDetails;

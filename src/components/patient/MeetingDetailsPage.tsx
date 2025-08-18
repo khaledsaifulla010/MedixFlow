@@ -1,7 +1,10 @@
 "use client";
 
 import React from "react";
-import {  Appointment, useGetAppointmentsQuery } from "@/services/appointmentApi";
+import {
+  Appointment,
+  useGetAppointmentsQuery,
+} from "@/services/appointmentApi";
 import { format } from "date-fns";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +16,7 @@ import {
   UserStar,
   Video,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const MeetingDetailsPage: React.FC = () => {
   const {
@@ -20,6 +24,11 @@ const MeetingDetailsPage: React.FC = () => {
     isLoading,
     isError,
   } = useGetAppointmentsQuery();
+
+  const router = useRouter();
+  const handleJoin = (id: string) => {
+    router.push(`/dashboard/meeting/${id}`);
+  };
 
   if (isLoading) return <div>Loading appointments...</div>;
   if (isError) return <div>Error fetching appointments.</div>;
@@ -32,7 +41,10 @@ const MeetingDetailsPage: React.FC = () => {
           const start = new Date(appt.startTime);
           const end = new Date(appt.endTime);
           const date = format(start, "dd MMM yyyy");
-          const timeRange = `${format(start, "hh:mm a")} - ${format(end, "hh:mm a")}`;
+          const timeRange = `${format(start, "hh:mm a")} - ${format(
+            end,
+            "hh:mm a"
+          )}`;
 
           return (
             <Card key={appt.id} className="shadow-md dark:bg-gray-900 border-2">
@@ -75,12 +87,11 @@ const MeetingDetailsPage: React.FC = () => {
               <p className="border-b-2"></p>
               <div className="flex px-4 -mb-2 -mt-2 justify-end">
                 <Button
-                  onClick={() =>
-                    window.open(`/dashboard/video-call/${appt.id}`, "_blank")
-                  }
+                  type="button"
+                  onClick={() => handleJoin(appt.id)}
                   className="cursor-pointer"
                 >
-                  <Video className="mt-0.5" /> Join Meeting
+                  <Video className="mt-0.5 mr-2" /> Join Meeting
                 </Button>
               </div>
             </Card>
