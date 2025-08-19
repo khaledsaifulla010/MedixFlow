@@ -2,11 +2,26 @@ import { AppDispatch } from "@/store/store";
 import { logout, setCredentials } from "./authSlice";
 import axiosInstance from "@/services/api";
 
-//  Register as a Patient //
 interface AuthResponse {
   user: any;
   accessToken: string;
   refreshToken: string;
+}
+//  Register as a Patient //
+interface RegisterPatientResponse {
+  message: string;
+  email: string;
+  name: string;
+  expiresInMinutes: number;
+}
+
+// Safe extractor for axios unknown errors
+function getApiErrorMessage(err: unknown): string | undefined {
+  if (typeof err === "object" && err !== null) {
+    const anyErr = err as { response?: { data?: { message?: string } } };
+    return anyErr.response?.data?.message;
+  }
+  return undefined;
 }
 
 export const registerPatient =
@@ -17,41 +32,19 @@ export const registerPatient =
     dob: Date;
     password: string;
   }) =>
-  async (
-    dispatch: AppDispatch
-  ): Promise<{ success: boolean; user?: any; message?: string }> => {
+  async (): Promise<{ success: boolean; email?: string; message?: string }> => {
     try {
-      const { data } = await axiosInstance.post<AuthResponse>(
+      const { data } = await axiosInstance.post<RegisterPatientResponse>(
         "/auth/register/patient",
-        { ...userData, role: "patient" }
+        userData
       );
-
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
-
-      axiosInstance.defaults.headers.common[
-        "Authorization"
-      ] = `Bearer ${data.accessToken}`;
-
-      dispatch(
-        setCredentials({
-          user: data.user,
-          accessToken: data.accessToken,
-          refreshToken: data.refreshToken,
-        })
-      );
-
-      return { success: true, user: data.user };
-    } catch (err: any) {
-      console.error("Registration error", err);
-      return {
-        success: false,
-        message: err.response?.data?.message || "Registration failed",
-      };
+      return { success: true, email: data.email };
+    } catch (err: unknown) {
+      const message = getApiErrorMessage(err) || "Registration failed";
+      return { success: false, message };
     }
   };
 
-  
 // Register as a Doctor //
 interface Availability {
   isRecurring: boolean;

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { addMinutes, generateOtp } from "@/lib/otp";
+import { sendOtpEmail } from "@/services/otpServices";
 
 export async function POST(req: Request) {
   try {
@@ -14,16 +15,27 @@ export async function POST(req: Request) {
       );
     }
 
-    const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) {
+    // Block if a real user already exists
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
       return NextResponse.json(
         { message: "User already exists" },
         { status: 400 }
       );
     }
 
-    const saltRounds = Number(process.env.BCRYPT_SALT_ROUND) || 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    // Block if a pending signup already exists (avoid spamming)
+    const existingPending = await prisma.patientSignup.findUnique({
+      where: { email },
+    });
+    if (existingPending) {
+      return NextResponse.json(
+        {
+          message: "Pending verification exists. Please verify or resend OTP.",
+        },
+        { status: 400 }
+      );
+    }
 
     const dobDate = new Date(dob);
     if (isNaN(dobDate.getTime())) {
@@ -33,46 +45,36 @@ export async function POST(req: Request) {
       );
     }
 
-    const user = await prisma.user.create({
+    const passwordHash = await bcrypt.hash(
+      password,
+      Number(process.env.BCRYPT_SALT_ROUND) || 10
+    );
+    const otp = generateOtp();
+    const expires = addMinutes(new Date(), 5);
+
+    // Save to TEMP table only
+    await prisma.patientSignup.create({
       data: {
         name,
         email,
         phone,
         dob: dobDate,
-        role: "patient",
-        password: hashedPassword,
+        passwordHash,
+        otpCode: otp,
+        otpExpiresAt: expires,
       },
     });
 
-    await prisma.patientProfile.create({
-      data: {
-        userId: user.id,
-      },
-    });
+    await sendOtpEmail({ to: email, name, otp });
 
-    const accessToken = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: "15m" }
-    );
-
-    const refreshToken = jwt.sign(
-      { id: user.id },
-      process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: "7d" }
-    );
     return NextResponse.json({
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-      },
-      accessToken,
-      refreshToken,
+      message: "Registration started. OTP sent to email.",
+      email,
+      name,
+      expiresInMinutes: 5,
     });
-  } catch (error) {
-    console.error("Patient registration error:", error);
+  } catch (e) {
+    console.error("Patient registration error:", e);
     return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
 }

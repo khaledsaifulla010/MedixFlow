@@ -1,4 +1,3 @@
-// app/(admin)/admin/analytics/AdminAnalytics.tsx
 "use client";
 
 import * as React from "react";
@@ -59,8 +58,6 @@ export default function AdminAnalytics() {
   const totalUsers = list.length;
   const totalDoctors = list.filter((u) => u.role === "doctor").length;
   const totalPatients = list.filter((u) => u.role === "patient").length;
-
-  // derive total appointments from doctors' counts
   const totalAppointments = list
     .filter((u) => u.role === "doctor")
     .reduce((sum, u) => sum + (u.doctorProfile?._count.appointments ?? 0), 0);
@@ -110,8 +107,6 @@ export default function AdminAnalytics() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Charts */}
       <div className="flex flex-col lg:flex-row gap-6 mt-16">
         <Card className="flex-1 text-center dark:bg-gray-800 bg-gray-200 border-2">
           <CardHeader>

@@ -53,11 +53,32 @@ model DoctorAvailability {
   createdAt   DateTime    @default(now())
 }
 
+model PatientSignup {
+  id            String   @id @default(cuid())
+  // patient-only signup payload (before they become a real User)
+  name          String
+  email         String   @unique
+  phone         String
+  dob           DateTime
+  passwordHash  String
+
+  // OTP
+  otpCode       String
+  otpExpiresAt  DateTime
+
+  createdAt     DateTime @default(now())
+}
+
+
 model PatientProfile {
   id        String   @id @default(cuid())
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
+
+  isVerified   Boolean   @default(false)
+  otpCode      String?
+  otpExpiresAt DateTime?
 
   // Relations
   histories    MedicalHistory[]

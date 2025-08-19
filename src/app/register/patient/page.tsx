@@ -52,9 +52,9 @@ export default function PatientRegisterPage() {
     if (date) values.dob = date;
 
     const res = await dispatch(registerPatient(values));
-    if (res.success) {
-      toast.success("Registration Successful");
-      router.push("/login");
+    if (res.success && res.email) {
+      toast.success("Registration Started. Check your email for OTP.");
+      router.push(`/otp?email=${encodeURIComponent(res.email)}`);
     } else {
       toast.error(res.message || "Registration failed!");
     }
