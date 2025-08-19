@@ -5,7 +5,7 @@ import jwt from "jsonwebtoken";
 
 export async function POST(req: Request) {
   try {
-    const { email, password,role } = await req.json();
+    const { email, password } = await req.json();
 
     if (!email || !password) {
       return NextResponse.json(
@@ -13,10 +13,22 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
     const user = await prisma.user.findUnique({ where: { email } });
-
     if (!user) {
+      const pending = await prisma.patientSignup.findUnique({
+        where: { email },
+      });
+      if (pending) {
+        return NextResponse.json(
+          {
+            message:
+              "Account not verified. Please check your email for the OTP.",
+            needsVerification: true,
+            email,
+          },
+          { status: 403 }
+        );
+      }
       return NextResponse.json(
         { message: "Invalid email or password" },
         { status: 401 }
@@ -34,17 +46,13 @@ export async function POST(req: Request) {
     const accessToken = jwt.sign(
       { id: user.id, role: user.role },
       process.env.JWT_SECRET!,
-      {
-        expiresIn: "1d",
-      }
+      { expiresIn: "1d" }
     );
 
     const refreshToken = jwt.sign(
       { id: user.id },
       process.env.JWT_REFRESH_SECRET!,
-      {
-        expiresIn: "7d",
-      }
+      { expiresIn: "7d" }
     );
 
     const response = NextResponse.json({
@@ -56,7 +64,6 @@ export async function POST(req: Request) {
       },
     });
 
-    // Set httpOnly cookies for tokens
     response.cookies.set({
       name: "accessToken",
       value: accessToken,

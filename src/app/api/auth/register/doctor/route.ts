@@ -15,7 +15,6 @@ export async function POST(req: Request) {
       degree,
       availabilities,
     } = await req.json();
-    // Validate required fields
     if (
       !name ||
       !email ||
@@ -41,8 +40,6 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
-    // Check for existing user
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       return NextResponse.json(
@@ -51,11 +48,9 @@ export async function POST(req: Request) {
       );
     }
 
-    // Hash password
     const saltRounds = Number(process.env.BCRYPT_SALT_ROUND || 10);
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Validate DOB
     const dobDate = new Date(dob);
     if (isNaN(dobDate.getTime())) {
       return NextResponse.json(
@@ -64,7 +59,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Format availabilities (strings are fine now)
     const formattedAvailabilities = availabilities.map((slot: any) => {
       if (
         typeof slot.isRecurring !== "boolean" ||
@@ -77,13 +71,11 @@ export async function POST(req: Request) {
       return {
         isRecurring: slot.isRecurring,
         dayOfWeek: slot.isRecurring ? slot.dayOfWeek : null,
-        date: slot.isRecurring ? null : slot.date, // string now
+        date: slot.isRecurring ? null : slot.date,
         startTime: slot.startTime,
         endTime: slot.endTime,
       };
     });
-
-    // Create doctor with profile & availabilities
     const doctor = await prisma.user.create({
       data: {
         name,
@@ -106,8 +98,6 @@ export async function POST(req: Request) {
         doctorProfile: { include: { availabilities: true } },
       },
     });
-
-    // Generate tokens
     const accessToken = jwt.sign(
       { id: doctor.id, role: doctor.role },
       process.env.JWT_SECRET!,

@@ -10,23 +10,44 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Video } from "lucide-react";
+import { Loader2, Video } from "lucide-react";
 import PrescriptionDialog from "./PrescriptionDialog";
+import { useRouter } from "next/navigation";
 
-const AppointmentsTable = () => {
+const PatientQueueDetails = () => {
   const {
     data: appointments = [],
     isLoading,
     isError,
   } = useGetAppointmentsQuery();
+  const router = useRouter();
+  const handleJoin = (id: string) => {
+    router.push(`/dashboard/meeting/${id}`);
+  };
 
-  if (isLoading) return <div>Loading appointments...</div>;
-  if (isError) return <div>Error fetching appointments.</div>;
-  if (!appointments.length) return <div>No appointments found.</div>;
+  if (isLoading)
+    return (
+      <div className="font-bold text-xl mt-36 flex items-center justify-center gap-4">
+        Loading Patient Queue
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+  if (isError)
+    return (
+      <div className="font-bold text-xl mt-36 flex items-center justify-center gap-4">
+        Error Fetching Patient Queue.
+      </div>
+    );
+  if (!appointments.length)
+    return (
+      <div className="font-bold text-xl mt-36 flex items-center justify-center gap-4">
+        No Patient Queue Found.
+      </div>
+    );
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mt-4 mb-8">Patient Queue Table</h1>
+
       <div className="border-2 p-4 rounded-md w-full">
         <Table className="border-2">
           <TableHeader>
@@ -76,19 +97,14 @@ const AppointmentsTable = () => {
                 </TableCell>
                 <TableCell>
                   <Button
-                    onClick={() =>
-                      window.open(
-                        `/dashboard/video-call/${appointment.id}`,
-                        "_blank"
-                      )
-                    }
+                    type="button"
+                    onClick={() => handleJoin(appointment.id)}
                     className="cursor-pointer"
                   >
-                    <Video className="mt-0.5" /> Join Meeting
+                    <Video className="mt-0.5 mr-2" /> Join Meeting
                   </Button>
                 </TableCell>
                 <TableCell>
-                  {/* Use the PrescriptionDialog here */}
                   <PrescriptionDialog
                     patientName={appointment.patient?.user.name}
                     appointmentId={appointment.id}
@@ -103,4 +119,4 @@ const AppointmentsTable = () => {
   );
 };
 
-export default AppointmentsTable;
+export default PatientQueueDetails;

@@ -12,15 +12,24 @@ import {
   Section,
   CalendarCheck,
   AlarmClock,
+  Loader2,
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 const DoctorProfileDetails = () => {
   const { data, isLoading, isError } = useGetDoctorAvailabilitiesQuery();
 
-  if (isLoading) return <p className="ml-6">Loading...</p>;
+  if (isLoading)
+    return (
+      <div className="font-bold text-xl mt-36 flex items-center justify-center gap-4">
+        Loading Doctor Profile
+        <Loader2 className="animate-spin" />
+      </div>
+    );
   if (isError || !data?.data.length)
-    return <p className="ml-6 text-red-500">Error loading data</p>;
+    return (
+      <p className="font-bold text-xl mt-36 ">Fetching Error Doctor Profile</p>
+    );
   const doctor = {
     name: data.data[0].doctor.user.name,
     phone: data.data[0].doctor.user.phone,
@@ -42,7 +51,6 @@ const DoctorProfileDetails = () => {
     <div className="p-6 dark:bg-gray-900 rounded-xl shadow">
       <div className="p-6 space-y-8 border-2 rounded-lg">
         <div className="flex justify-between">
-
           <Card className="w-[400px] dark:bg-gray-800 border-2">
             <CardHeader className="flex items-center space-x-4">
               <UserCircle className="w-12 h-14" />

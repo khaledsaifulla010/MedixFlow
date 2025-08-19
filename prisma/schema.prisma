@@ -22,18 +22,8 @@ model User {
   role      Role
   password  String
   createdAt DateTime @default(now())
-
-  // Relations
-  adminProfile   AdminProfile?
   doctorProfile  DoctorProfile?
   patientProfile PatientProfile?
-}
-
-model AdminProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
 }
 
 model DoctorProfile {
@@ -43,8 +33,6 @@ model DoctorProfile {
   speciality  String
   degree      String
   createdAt   DateTime                @default(now())
-
-  // Relations
   appointments   Appointment[]        @relation("DoctorAppointments")
   availabilities DoctorAvailability[]
 }
@@ -54,11 +42,23 @@ model DoctorAvailability {
   doctor    DoctorProfile @relation(fields: [doctorId], references: [id])
   doctorId  String
   isRecurring Boolean     @default(false)
-  dayOfWeek   Int?        // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-  date        String?     // nullable for single-date availability
+  dayOfWeek   Int?        
+  date        String?     
   startTime   String
   endTime     String
   createdAt   DateTime    @default(now())
+}
+
+model PatientSignup {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  phone         String
+  dob           DateTime
+  passwordHash  String
+  otpCode       String
+  otpExpiresAt  DateTime
+  createdAt     DateTime @default(now())
 }
 
 model PatientProfile {
@@ -66,8 +66,9 @@ model PatientProfile {
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
-
-  // Relations
+  isVerified   Boolean   @default(false)
+  otpCode      String?
+  otpExpiresAt DateTime?
   histories    MedicalHistory[]
   appointments Appointment[] @relation("PatientAppointments")
 }
@@ -77,11 +78,10 @@ model MedicalHistory {
   patientProfileId String
   allergies        String?
   pastTreatments   String?
-  files            String[]       // Array of file URLs
+  files            String[]
   createdAt        DateTime       @default(now())
   patientProfile   PatientProfile @relation(fields: [patientProfileId], references: [id])
 }
-
 model Appointment {
   id         String          @id @default(cuid())
   doctorId   String
@@ -90,12 +90,8 @@ model Appointment {
   endTime    DateTime
   createdAt  DateTime        @default(now())
   isRead     Boolean         @default(false)
-
-  // Relations
   doctor     DoctorProfile   @relation("DoctorAppointments", fields: [doctorId], references: [id])
   patient    PatientProfile  @relation("PatientAppointments", fields: [patientId], references: [id])
-
-  // Prescription relation
   prescriptions Prescription[] @relation("AppointmentPrescriptions")
 }
 
@@ -105,8 +101,6 @@ model Prescription {
   advice        String?
   followUp      String?
   createdAt     DateTime            @default(now())
-
-  // Relations
   appointment   Appointment         @relation("AppointmentPrescriptions", fields: [appointmentId], references: [id])
   items         PrescriptionItem[]
 }
@@ -120,7 +114,6 @@ model PrescriptionItem {
   dosageTime     String
   duration       String
   createdAt      DateTime @default(now())
-
   prescription   Prescription @relation(fields: [prescriptionId], references: [id])
 }
 

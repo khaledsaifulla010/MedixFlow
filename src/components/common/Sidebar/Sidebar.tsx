@@ -9,17 +9,16 @@ import {
   Calendar,
   Video,
   FileText,
-  MessageSquare,
   Users,
   Bell,
   CircleUser,
   FileClock,
   SquareStack,
+  Files,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import LogoutButton from "@/components/authComponents/LogoutButton";
-
 type MenuItem = {
   name: string;
   href: string;
@@ -43,10 +42,14 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
       },
     ],
     MANAGE: [
-      { name: "Users", href: "/users", icon: Users },
-      { name: "Appointments", href: "/appointments", icon: Calendar },
+      { name: "Users", href: "/dashboard/admin/users", icon: Users },
+      {
+        name: "All Appointments",
+        href: "/dashboard/admin/all-appointments",
+        icon: Files,
+      },
     ],
-    SYSTEM: [{ name: "Notifications", href: "/notifications", icon: Bell }],
+    SYSTEM: [],
   },
   doctor: {
     MENU: [
@@ -63,10 +66,14 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
         href: "/dashboard/doctor/patient-queue",
         icon: SquareStack,
       },
-      { name: "Video Calls", href: "/video", icon: Video },
-      { name: "EHR Records", href: "/ehr", icon: FileText },
+
+      {
+        name: "EHR Records",
+        href: "/dashboard/doctor/ehr-records",
+        icon: FileText,
+      },
     ],
-    SYSTEM: [{ name: "Messages", href: "/messages", icon: MessageSquare }],
+    SYSTEM: [],
   },
   patient: {
     MENU: [
@@ -96,7 +103,6 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
       },
     ],
     SYSTEM: [
-      { name: "Messages", href: "/messages", icon: MessageSquare },
       {
         name: "Notifications",
         href: "/dashboard/patient/notifications",
@@ -135,7 +141,6 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 h-screen sticky top-0 bg-white dark:bg-gray-900 border-r-2 border-gray-200 dark:border-gray-800 flex flex-col">
-
       <div className="px-6 py-4 border-b-2 border-gray-200 dark:border-gray-800">
         <div className="flex flex-col items-center">
           <div className="block dark:hidden">

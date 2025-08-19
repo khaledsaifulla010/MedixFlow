@@ -6,6 +6,7 @@ import {
   getOnlineAppointmentReminderEmail,
   sendEmailReminder,
 } from "@/services/emailService";
+import { getRescheduleAppointmentEmail } from "@/services/rescheduleEmail";
 
 function formatDate(date: Date) {
   return date.toISOString().split("T")[0];
@@ -46,6 +47,7 @@ export async function POST(req: Request) {
     });
     if (!doctor)
       return NextResponse.json({ error: "Doctor not found" }, { status: 400 });
+
     const patient = await prisma.patientProfile.findUnique({
       where: { userId: auth.userId },
     });
@@ -92,7 +94,6 @@ export async function POST(req: Request) {
         { error: "Selected slot is already booked" },
         { status: 400 }
       );
-
     const appointment = await prisma.appointment.create({
       data: {
         doctorId,
@@ -102,7 +103,12 @@ export async function POST(req: Request) {
       },
       include: {
         doctor: { include: { user: true } },
-        patient: { include: { user: true } },
+        patient: {
+          include: {
+            user: true,
+            histories: true, 
+          },
+        },
       },
     });
     if (appointment.patient?.user?.email) {
@@ -155,7 +161,12 @@ export async function GET(req: Request) {
         where: { doctorId: doctor.id },
         include: {
           doctor: { include: { user: true } },
-          patient: { include: { user: true } },
+          patient: {
+            include: {
+              user: true,
+              histories: true, 
+            },
+          },
         },
         orderBy: { startTime: "asc" },
       });
@@ -173,7 +184,12 @@ export async function GET(req: Request) {
         where: { patientId: patient.id },
         include: {
           doctor: { include: { user: true } },
-          patient: { include: { user: true } },
+          patient: {
+            include: {
+              user: true,
+              histories: true,
+            },
+          },
         },
         orderBy: { startTime: "asc" },
       });
@@ -183,6 +199,7 @@ export async function GET(req: Request) {
         { status: 403 }
       );
     }
+
     return NextResponse.json({ data: appointments });
   } catch (err) {
     console.error("GET /api/appointment error:", err);
@@ -203,10 +220,12 @@ export async function PATCH(req: Request) {
         { status: 400 }
       );
     }
-
     const appointment = await prisma.appointment.findUnique({
       where: { id: appointmentId },
-      include: { patient: true },
+      include: {
+        doctor: { include: { user: true } },
+        patient: { include: { user: true } },
+      },
     });
     if (!appointment)
       return NextResponse.json(
@@ -231,6 +250,7 @@ export async function PATCH(req: Request) {
         ],
       },
     });
+
     const isInsideAvailability = availabilities.some((a) => {
       const availStart = a.isRecurring
         ? new Date(`${formatDate(start)}T${a.startTime}`)
@@ -245,8 +265,6 @@ export async function PATCH(req: Request) {
         { error: "Outside doctor's availability" },
         { status: 400 }
       );
-
-    // Conflict check excluding current appointment
     const conflict = await prisma.appointment.findFirst({
       where: {
         doctorId: appointment.doctorId,
@@ -260,11 +278,33 @@ export async function PATCH(req: Request) {
         { error: "Slot already booked" },
         { status: 400 }
       );
-
+    const prevStart = appointment.startTime;
     const updated = await prisma.appointment.update({
       where: { id: appointment.id },
       data: { startTime: start, endTime: end },
+      include: {
+        doctor: { include: { user: true } },
+        patient: { include: { user: true } },
+      },
     });
+    if (updated.patient?.user?.email) {
+      const { subject, htmlMessage, textMessage } =
+        getRescheduleAppointmentEmail(
+          updated.doctor.user.name,
+          updated.doctor.degree || "",
+          updated.doctor.speciality || "",
+          updated.patient.user.name,
+          updated.startTime,
+          prevStart
+        );
+
+      await sendEmailReminder(
+        updated.patient.user.email,
+        subject,
+        htmlMessage,
+        textMessage
+      );
+    }
 
     return NextResponse.json(updated);
   } catch (err) {

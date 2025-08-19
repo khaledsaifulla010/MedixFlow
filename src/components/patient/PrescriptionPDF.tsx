@@ -9,7 +9,6 @@ import {
   Image,
 } from "@react-pdf/renderer";
 
-/** ---------- Types ---------- **/
 export type Medicine = {
   name: string;
   type: string;
@@ -44,8 +43,6 @@ export type PrescriptionData = {
   advice: string[];
   followUp: string;
 };
-
-/** ---------- Styles ---------- **/
 const styles = StyleSheet.create({
   page: { padding: 24, fontSize: 11, fontFamily: "Helvetica", color: "#111" },
 
