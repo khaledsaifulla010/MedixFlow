@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,6 @@ interface OtpResendResponse {
   expiresInMinutes: number;
 }
 
-
 type OTPFormValues = {
   code0: string;
   code1: string;
@@ -38,7 +36,7 @@ type OTPFormValues = {
   code5: string;
 };
 
-export default function OTPVerificationPage() {
+function OTPVerificationInner() {
   const router = useRouter();
   const params = useSearchParams();
   const email = params.get("email") || "";
@@ -64,7 +62,7 @@ export default function OTPVerificationPage() {
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
-  const [expiresIn, setExpiresIn] = useState<number>(300); 
+  const [expiresIn, setExpiresIn] = useState<number>(300);
 
   useEffect(() => {
     inputsRef.current[0]?.focus();
@@ -74,6 +72,7 @@ export default function OTPVerificationPage() {
     const t = setInterval(() => setExpiresIn((s) => (s > 0 ? s - 1 : 0)), 1000);
     return () => clearInterval(t);
   }, []);
+
   const handleChange = (i: number, v: string) => {
     if (!/^\d?$/.test(v)) return;
     setValue(`code${i}` as keyof OTPFormValues, v, {
@@ -124,7 +123,6 @@ export default function OTPVerificationPage() {
     }
     inputsRef.current[Math.min(p.length, OTP_LENGTH - 1)]?.focus();
   };
-
 
   const onSubmit = async () => {
     const v = getValues();
@@ -202,9 +200,7 @@ export default function OTPVerificationPage() {
                 render={({ field }) => (
                   <input
                     ref={(el) => {
-
                       inputsRef.current[i] = el;
-
                       if (typeof field.ref === "function") field.ref(el);
                       else
                         (
@@ -265,5 +261,18 @@ export default function OTPVerificationPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+
+export default function OTPVerificationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen grid place-items-center">Loading…</div>
+      }
+    >
+      <OTPVerificationInner />
+    </Suspense>
   );
 }
