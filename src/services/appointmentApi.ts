@@ -7,15 +7,24 @@ export interface Doctor {
   degree: string;
 }
 
-export interface Availability {
+export interface MedicalHistory {
   id: string;
-  doctorId: string;
-  doctor: Doctor;
-  date: string | null;
-  startTime: string;
-  endTime: string;
-  isRecurring: boolean;
-  dayOfWeek?: number;
+  patientProfileId: string;
+  allergies?: string | null;
+  pastTreatments?: string | null;
+  files: string[];
+  createdAt: string;
+}
+
+export interface PatientUser {
+  name: string;
+  email: string;
+  phone: string;
+}
+
+export interface PatientForAppointment {
+  user: PatientUser;
+  histories: MedicalHistory[];
 }
 
 export interface Appointment {
@@ -26,13 +35,18 @@ export interface Appointment {
   startTime: string;
   endTime: string;
   doctor: Doctor;
-  patient?: {
-    user: {
-      name: string;
-      email: string;
-      phone: string;
-    };
-  };
+  patient?: PatientForAppointment;
+}
+
+export interface Availability {
+  id: string;
+  doctorId: string;
+  doctor: Doctor;
+  date: string | null;
+  startTime: string;
+  endTime: string;
+  isRecurring: boolean;
+  dayOfWeek?: number;
 }
 
 export const appointmentApi = createApi({
@@ -50,6 +64,8 @@ export const appointmentApi = createApi({
       providesTags: ["Availability"],
       transformResponse: (res: { data: Availability[] }) => res.data,
     }),
+
+    // server returns { data: Appointment[] }
     getAppointments: builder.query<Appointment[], void>({
       query: () => "/patient/appointment",
       providesTags: ["Appointment"],
@@ -58,7 +74,7 @@ export const appointmentApi = createApi({
 
     createAppointment: builder.mutation<
       Appointment,
-      Partial<Appointment> & { doctorId: string }
+      { doctorId: string; startTime: string; endTime: string }
     >({
       query: (body) => ({
         url: "/patient/appointment",

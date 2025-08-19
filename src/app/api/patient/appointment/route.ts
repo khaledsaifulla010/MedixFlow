@@ -6,6 +6,7 @@ import {
   getOnlineAppointmentReminderEmail,
   sendEmailReminder,
 } from "@/services/emailService";
+import { getRescheduleAppointmentEmail } from "@/services/rescheduleEmail";
 
 function formatDate(date: Date) {
   return date.toISOString().split("T")[0];
@@ -46,11 +47,14 @@ export async function POST(req: Request) {
     });
     if (!doctor)
       return NextResponse.json({ error: "Doctor not found" }, { status: 400 });
+
     const patient = await prisma.patientProfile.findUnique({
       where: { userId: auth.userId },
     });
     if (!patient)
       return NextResponse.json({ error: "Patient not found" }, { status: 400 });
+
+    // Check availability
     const availabilities = await prisma.doctorAvailability.findMany({
       where: {
         doctorId,
@@ -80,6 +84,8 @@ export async function POST(req: Request) {
         { error: "Selected time is outside doctor's availability" },
         { status: 400 }
       );
+
+    // Conflict check
     const conflict = await prisma.appointment.findFirst({
       where: {
         doctorId,
@@ -93,6 +99,7 @@ export async function POST(req: Request) {
         { status: 400 }
       );
 
+    // Create appointment and include patient histories
     const appointment = await prisma.appointment.create({
       data: {
         doctorId,
@@ -102,9 +109,16 @@ export async function POST(req: Request) {
       },
       include: {
         doctor: { include: { user: true } },
-        patient: { include: { user: true } },
+        patient: {
+          include: {
+            user: true,
+            histories: true, 
+          },
+        },
       },
     });
+
+    // Send confirmation to patient
     if (appointment.patient?.user?.email) {
       const { htmlMessage, textMessage } = getOnlineAppointmentReminderEmail(
         appointment.doctor.user.name,
@@ -155,7 +169,12 @@ export async function GET(req: Request) {
         where: { doctorId: doctor.id },
         include: {
           doctor: { include: { user: true } },
-          patient: { include: { user: true } },
+          patient: {
+            include: {
+              user: true,
+              histories: true, 
+            },
+          },
         },
         orderBy: { startTime: "asc" },
       });
@@ -173,7 +192,12 @@ export async function GET(req: Request) {
         where: { patientId: patient.id },
         include: {
           doctor: { include: { user: true } },
-          patient: { include: { user: true } },
+          patient: {
+            include: {
+              user: true,
+              histories: true,
+            },
+          },
         },
         orderBy: { startTime: "asc" },
       });
@@ -183,6 +207,7 @@ export async function GET(req: Request) {
         { status: 403 }
       );
     }
+
     return NextResponse.json({ data: appointments });
   } catch (err) {
     console.error("GET /api/appointment error:", err);
@@ -204,9 +229,13 @@ export async function PATCH(req: Request) {
       );
     }
 
+    // Include doctor + patient user so we can email after update
     const appointment = await prisma.appointment.findUnique({
       where: { id: appointmentId },
-      include: { patient: true },
+      include: {
+        doctor: { include: { user: true } },
+        patient: { include: { user: true } },
+      },
     });
     if (!appointment)
       return NextResponse.json(
@@ -222,6 +251,8 @@ export async function PATCH(req: Request) {
 
     const start = new Date(startTime);
     const end = new Date(endTime);
+
+    // Availability check
     const availabilities = await prisma.doctorAvailability.findMany({
       where: {
         doctorId: appointment.doctorId,
@@ -231,6 +262,7 @@ export async function PATCH(req: Request) {
         ],
       },
     });
+
     const isInsideAvailability = availabilities.some((a) => {
       const availStart = a.isRecurring
         ? new Date(`${formatDate(start)}T${a.startTime}`)
@@ -261,10 +293,38 @@ export async function PATCH(req: Request) {
         { status: 400 }
       );
 
+    // Save previous time for the email (optional)
+    const prevStart = appointment.startTime;
+
+    // Update and include doctor/patient again in the response
     const updated = await prisma.appointment.update({
       where: { id: appointment.id },
       data: { startTime: start, endTime: end },
+      include: {
+        doctor: { include: { user: true } },
+        patient: { include: { user: true } },
+      },
     });
+
+    // Send reschedule email to patient
+    if (updated.patient?.user?.email) {
+      const { subject, htmlMessage, textMessage } =
+        getRescheduleAppointmentEmail(
+          updated.doctor.user.name,
+          updated.doctor.degree || "",
+          updated.doctor.speciality || "",
+          updated.patient.user.name,
+          updated.startTime,
+          prevStart
+        );
+
+      await sendEmailReminder(
+        updated.patient.user.email,
+        subject,
+        htmlMessage,
+        textMessage
+      );
+    }
 
     return NextResponse.json(updated);
   } catch (err) {
