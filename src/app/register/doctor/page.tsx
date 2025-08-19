@@ -92,7 +92,7 @@ export default function DoctorRegisterPage() {
         <div className="max-h-[75vh] overflow-y-auto pr-2">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              {/* Name + Email */}
+
               <div className="flex items-center justify-between gap-6">
                 <FormField
                   control={form.control}

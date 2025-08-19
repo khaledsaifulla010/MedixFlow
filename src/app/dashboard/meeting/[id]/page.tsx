@@ -1,17 +1,15 @@
 "use client";
 
-export const dynamic = "force-dynamic"; // avoid static pre-render that can cause SSR/CSR diffs
-
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { OngoingCall, SocketUser } from "../../../../../types";
 import { useSocket } from "../../../../../context/SocketContext";
 import VideoCallWithChat from "@/components/videoCall/VideoCall";
+import { Button } from "@/components/ui/button";
 
 type PendingPatient = SocketUser;
 
 export default function MeetingRoom() {
-  // ----- mount guard to prevent hydration mismatch -----
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -26,10 +24,8 @@ export default function MeetingRoom() {
     "idle" | "host" | "waiting" | "noDoctor" | "rejected" | "started"
   >("idle");
 
-  // prevent double-start if duplicate events arrive
   const startedRef = useRef(false);
 
-  // Join room only after mount (prevents SSR/CSR mismatch)
   useEffect(() => {
     if (!mounted || !socket || !roomId || !user) return;
 
@@ -64,17 +60,13 @@ export default function MeetingRoom() {
       startedRef.current = true;
       setStatus("started");
 
-      // Auto-start WebRTC:
       try {
         if (call.participants.caller.userId === user?.id) {
-          // I am the patient (caller/initiator)
           handleCall(call.participants.receiver);
         } else {
-          // I am the doctor (callee)
           handleJoinCall(call);
         }
       } catch (e) {
-        // If anything fails, allow user to refresh/try again; we keep status started.
         console.error("Auto-start error:", e);
       }
     };
@@ -114,32 +106,40 @@ export default function MeetingRoom() {
       );
     }
     if (status === "host")
-      return <p className="text-gray-800">You are a host.</p>;
+      return (
+        <p className="text-lg text-center font-bold">
+          You are the Meeting Host.
+        </p>
+      );
     if (status === "waiting")
       return (
-        <p className="text-gray-800">
-          No one is here, waiting for meeting host.
+        <p className="text-lg text-center font-bold">
+          No one is here. Waiting for Doctor.
         </p>
       );
     if (status === "noDoctor")
       return (
-        <p className="text-red-600">
+        <p className="text-red-600 text-lg text-center font-bold">
           No doctor online right now. Please try again later.
         </p>
       );
     if (status === "rejected")
       return (
-        <p className="text-red-600">Your request was rejected by the host.</p>
+        <p className="text-red-600 text-lg text-center font-bold">
+          Your request was rejected by the doctor.
+        </p>
       );
-    if (status === "started") return null; // Video UI will render instead
+    if (status === "started") return null;
     return null;
   };
 
   return (
-    <div className="p-6 space-y-6" suppressHydrationWarning>
+    <div className="p-6 space-y-6 border-2 rounded-md" suppressHydrationWarning>
       <div>
-        <h1 className="text-2xl font-semibold">Meeting Room</h1>
-        <p className="text-sm text-gray-500">Room ID: {roomId || "…"}</p>
+        <h1 className="text-3xl font-bold">Meeting Room</h1>
+        <p className="text-sm dark:text-gray-300 mt-2">
+          Meeting ID: {roomId || "…"}
+        </p>
       </div>
 
       <div className="p-4 rounded border">
@@ -149,9 +149,9 @@ export default function MeetingRoom() {
 
       {mounted && isHost && status !== "started" && (
         <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Join Requests</h2>
+          <h2 className="text-2xl font-bold">Patient Requests</h2>
           {pendingPatients.length === 0 && (
-            <p className="text-gray-500 text-sm">No pending requests.</p>
+            <p className="text-sm">No pending requests.</p>
           )}
           <ul className="space-y-3">
             {pendingPatients.map((p) => (
@@ -160,22 +160,26 @@ export default function MeetingRoom() {
                 className="flex items-center justify-between p-3 rounded border"
               >
                 <div>
-                  <div className="font-medium">{p.userName || "Unknown"}</div>
-                  <div className="text-xs text-gray-500">{p.userEmail}</div>
+                  <div className="font-medium text-lg">
+                    {p.userName || "Unknown"}
+                  </div>
+                  <div className="text-sm dark:text-gray-300">
+                    {p.userEmail}
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
+                <div className="flex items-center gap-4">
+                  <Button
                     onClick={() => approvePatient(p.userId)}
-                    className="px-3 py-1 rounded bg-green-600 text-white text-sm"
+                    className="bg-green-600 hover:bg-green-700 cursor-pointer font-bold text-white"
                   >
                     Accept
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={() => rejectPatient(p.userId)}
-                    className="px-3 py-1 rounded bg-red-600 text-white text-sm"
+                    className="bg-red-600 hover:bg-red-700 cursor-pointer font-bold text-white"
                   >
                     Reject
-                  </button>
+                  </Button>
                 </div>
               </li>
             ))}

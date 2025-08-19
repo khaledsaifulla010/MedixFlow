@@ -1,6 +1,7 @@
 "use client";
 
 import NotificationPage from "@/components/patient/NotificationPage";
+import { Loader2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
 const Notifications = () => {
@@ -21,7 +22,13 @@ const Notifications = () => {
     fetchPatientId();
   }, []);
 
-  if (!patientId) return <p>Loading notifications...</p>;
+  if (!patientId)
+    return (
+      <div className="font-bold text-xl mt-36 flex items-center justify-center gap-4">
+        Loading Notification
+        <Loader2 className="animate-spin" />
+      </div>
+    );
 
   return <NotificationPage patientId={patientId} />;
 };

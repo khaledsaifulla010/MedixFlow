@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { generatePatientId } from "@/lib/generatePatientId";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import prisma from "@/lib/prisma";

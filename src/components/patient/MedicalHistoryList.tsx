@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { useGetMedicalHistoryQuery } from "@/services/medicalHistory";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { Bandage, Files, NutOff } from "lucide-react";
+import { Bandage, Files, Loader2, NutOff } from "lucide-react";
 
 interface PatientMeResponse {
   user: { id: string };
@@ -32,13 +32,28 @@ export default function MedicalHistoryList() {
     isError,
   } = useGetMedicalHistoryQuery(userId, { skip: !userId });
 
-  if (isLoading) return <div>Loading medical history...</div>;
-  if (isError) return <div>Error fetching medical history.</div>;
-  if (!histories.length) return <div>No medical history found.</div>;
+  if (isLoading)
+    return (
+      <div className="font-bold text-xl mt-36 flex items-center justify-center gap-4">
+        Loading Medical History
+        <Loader2 className="animate-spin" />
+      </div>
+    );
+  if (isError)
+    return (
+      <div className="font-bold text-xl mt-36 text-center">
+        Error Fetching Medical History.
+      </div>
+    );
+  if (!histories.length)
+    return (
+      <div className="font-bold text-xl mt-36 text-center">
+        No Medical History Found.
+      </div>
+    );
 
   return (
     <div>
-      <h3 className="text-3xl font-bold mb-4">Medical History</h3>
       <div className="grid grid-cols-2 gap-4">
         {histories.map((history) => (
           <Card
