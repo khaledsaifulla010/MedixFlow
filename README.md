@@ -154,7 +154,7 @@ MEDIXFLOW/
 Create a `.env` file in your project root and use the following structure.  
 Make sure to **replace placeholder values** with your actual configuration.
 
-````env
+```env
 # Server
 PORT=5000
 NODE_ENV=development
@@ -187,15 +187,17 @@ EMAIL_USER=no-reply@yourmail.com
 EMAIL_PASS=your_email_password
 FROM_EMAIL=no-reply@yourmail.com
 
+```
 
 ---
+
 ## 📥 Installation
 
 ```bash
 git clone https://github.com/khaledsaifulla010/MedixFlow.git
 cd MedixFlow
 npm install
-````
+```
 
 <p align="center">
   🛠️ Developed by <strong>Khaled Saifulla</strong> with clean backend architecture ❤️.
