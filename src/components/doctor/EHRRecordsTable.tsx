@@ -182,7 +182,7 @@ export default function EHRRecordsTable() {
               <TableRow>
                 <TableCell
                   colSpan={9}
-                  className="font-bold text-xl mt-36 flex items-center justify-center gap-4"
+                  className="font-bold text-xl mt-36 text-center"
                 >
                   No EHR Record Found.
                 </TableCell>

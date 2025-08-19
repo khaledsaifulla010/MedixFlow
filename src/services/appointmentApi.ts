@@ -49,6 +49,32 @@ export interface Availability {
   dayOfWeek?: number;
 }
 
+export interface AdminDoctorUser {
+  name: string;
+  email: string;
+}
+export interface AdminDoctor {
+  id: string;
+  user: AdminDoctorUser;
+  speciality: string;
+  degree: string;
+}
+export interface AdminPatientUser {
+  name: string;
+  email: string;
+  phone: string;
+}
+export interface AdminPatient {
+  user: AdminPatientUser;
+}
+export interface AdminAppointment {
+  id: string;
+  startTime: string;
+  endTime: string;
+  doctor: AdminDoctor;
+  patient: AdminPatient;
+}
+
 export const appointmentApi = createApi({
   reducerPath: "appointmentApi",
   baseQuery: fetchBaseQuery({
@@ -56,8 +82,7 @@ export const appointmentApi = createApi({
     fetchFn: (input, init = {}) =>
       fetch(input, { ...init, credentials: "include" }),
   }),
-  tagTypes: ["Availability", "Appointment"],
-
+  tagTypes: ["Availability", "Appointment", "AdminAppointment"],
   endpoints: (builder) => ({
     getAvailabilities: builder.query<Availability[], void>({
       query: () => "/doctor/available",
@@ -65,7 +90,6 @@ export const appointmentApi = createApi({
       transformResponse: (res: { data: Availability[] }) => res.data,
     }),
 
-    // server returns { data: Appointment[] }
     getAppointments: builder.query<Appointment[], void>({
       query: () => "/patient/appointment",
       providesTags: ["Appointment"],
@@ -95,6 +119,11 @@ export const appointmentApi = createApi({
       }),
       invalidatesTags: ["Appointment"],
     }),
+    getAllAppointmentsAdmin: builder.query<AdminAppointment[], void>({
+      query: () => "/admin/appointments",
+      providesTags: ["AdminAppointment"],
+      transformResponse: (res: { data: AdminAppointment[] }) => res.data,
+    }),
   }),
 });
 
@@ -103,4 +132,5 @@ export const {
   useGetAppointmentsQuery,
   useCreateAppointmentMutation,
   useUpdateAppointmentMutation,
+  useGetAllAppointmentsAdminQuery,
 } = appointmentApi;

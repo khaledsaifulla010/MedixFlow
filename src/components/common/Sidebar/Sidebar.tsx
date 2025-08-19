@@ -15,6 +15,7 @@ import {
   CircleUser,
   FileClock,
   SquareStack,
+  Files,
 } from "lucide-react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
@@ -41,7 +42,14 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
         icon: CircleUser,
       },
     ],
-    MANAGE: [{ name: "Users", href: "/dashboard/admin/users", icon: Users }],
+    MANAGE: [
+      { name: "Users", href: "/dashboard/admin/users", icon: Users },
+      {
+        name: "All Appointments",
+        href: "/dashboard/admin/all-appointments",
+        icon: Files,
+      },
+    ],
     SYSTEM: [],
   },
   doctor: {
@@ -60,7 +68,11 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
         icon: SquareStack,
       },
 
-      { name: "EHR Records", href: "/dashboard/doctor/ehr-records", icon: FileText },
+      {
+        name: "EHR Records",
+        href: "/dashboard/doctor/ehr-records",
+        icon: FileText,
+      },
     ],
     SYSTEM: [],
   },
