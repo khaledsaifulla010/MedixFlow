@@ -410,6 +410,7 @@ export default function AppointmentDetailsPage() {
           nowIndicator
           selectable
           editable
+          timeZone="local"
           eventDurationEditable
           select={handleSelect}
           eventClick={handleEventClick}
