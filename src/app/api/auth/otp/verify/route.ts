@@ -12,11 +12,8 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
-    // Check pending signup
     const pending = await prisma.patientSignup.findUnique({ where: { email } });
     if (!pending) {
-      // Maybe user already verified?
       const alreadyUser = await prisma.user.findUnique({ where: { email } });
       if (alreadyUser) {
         return NextResponse.json(
@@ -29,8 +26,6 @@ export async function POST(req: Request) {
         { status: 404 }
       );
     }
-
-    // Validate OTP
     if (!pending.otpCode || !pending.otpExpiresAt) {
       return NextResponse.json(
         { message: "OTP not found, please resend" },
@@ -44,7 +39,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Wrong code" }, { status: 400 });
     }
 
-    // Create real user + patient profile in a transaction
     const result = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
         data: {
@@ -59,16 +53,14 @@ export async function POST(req: Request) {
       });
 
       await tx.patientProfile.create({
-        data: { userId: user.id /* no OTP fields here anymore */ },
+        data: { userId: user.id },
       });
 
-      // cleanup pending
       await tx.patientSignup.delete({ where: { email: pending.email } });
 
       return user;
     });
 
-    // Issue tokens now that user exists
     const accessToken = jwt.sign(
       { id: result.id, role: result.role },
       process.env.JWT_SECRET!,

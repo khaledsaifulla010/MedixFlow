@@ -14,8 +14,6 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
-    // Block if a real user already exists
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return NextResponse.json(
@@ -24,7 +22,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Block if a pending signup already exists (avoid spamming)
     const existingPending = await prisma.patientSignup.findUnique({
       where: { email },
     });
@@ -51,8 +48,6 @@ export async function POST(req: Request) {
     );
     const otp = generateOtp();
     const expires = addMinutes(new Date(), 5);
-
-    // Save to TEMP table only
     await prisma.patientSignup.create({
       data: {
         name,

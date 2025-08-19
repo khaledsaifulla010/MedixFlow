@@ -105,7 +105,6 @@ const PatientQueueDetails = () => {
                   </Button>
                 </TableCell>
                 <TableCell>
-                  {/* Use the PrescriptionDialog here */}
                   <PrescriptionDialog
                     patientName={appointment.patient?.user.name}
                     appointmentId={appointment.id}

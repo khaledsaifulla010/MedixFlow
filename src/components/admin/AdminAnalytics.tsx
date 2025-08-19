@@ -1,6 +1,5 @@
 "use client";
 
-import * as React from "react";
 import { useGetAllUsersQuery } from "@/services/usersApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {

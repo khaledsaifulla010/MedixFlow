@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Loader2Icon } from "lucide-react";
+import { Loader2Icon } from "lucide-react";
 
 function formatDate(iso: string) {
   const d = new Date(iso);

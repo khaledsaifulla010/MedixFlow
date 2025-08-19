@@ -1,4 +1,4 @@
-// app/otp/page.tsx
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -11,7 +11,6 @@ import "react-toastify/dist/ReactToastify.css";
 
 const OTP_LENGTH = 6;
 
-// ---------- Response types ----------
 interface OtpVerifyResponse {
   message: string;
   user: {
@@ -29,7 +28,7 @@ interface OtpResendResponse {
   expiresInMinutes: number;
 }
 
-// ---------- Form type ----------
+
 type OTPFormValues = {
   code0: string;
   code1: string;
@@ -65,22 +64,18 @@ export default function OTPVerificationPage() {
   const inputsRef = useRef<Array<HTMLInputElement | null>>([]);
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
-  const [expiresIn, setExpiresIn] = useState<number>(300); // seconds (5 min)
+  const [expiresIn, setExpiresIn] = useState<number>(300); 
 
-  // Focus first box on mount
   useEffect(() => {
     inputsRef.current[0]?.focus();
   }, []);
 
-  // Countdown timer
   useEffect(() => {
     const t = setInterval(() => setExpiresIn((s) => (s > 0 ? s - 1 : 0)), 1000);
     return () => clearInterval(t);
   }, []);
-
-  // Handlers for each input
   const handleChange = (i: number, v: string) => {
-    if (!/^\d?$/.test(v)) return; // only single digit
+    if (!/^\d?$/.test(v)) return;
     setValue(`code${i}` as keyof OTPFormValues, v, {
       shouldValidate: true,
       shouldDirty: true,
@@ -130,9 +125,8 @@ export default function OTPVerificationPage() {
     inputsRef.current[Math.min(p.length, OTP_LENGTH - 1)]?.focus();
   };
 
-  // Submit via RHF
+
   const onSubmit = async () => {
-    // ✅ Build the code fresh at submit time (fixes stale memo bug)
     const v = getValues();
     const joined = `${v.code0}${v.code1}${v.code2}${v.code3}${v.code4}${v.code5}`;
 
@@ -147,8 +141,6 @@ export default function OTPVerificationPage() {
 
     try {
       setSubmitting(true);
-
-      // Typed axios response; use res.data (not data directly) to avoid 'unknown'
       const res = await axiosInstance.post<OtpVerifyResponse>(
         "/auth/otp/verify",
         {
@@ -176,7 +168,6 @@ export default function OTPVerificationPage() {
     }
   };
 
-  // Resend OTP
   const resend = async () => {
     if (!email) return toast.error("Missing email");
     try {
@@ -211,9 +202,9 @@ export default function OTPVerificationPage() {
                 render={({ field }) => (
                   <input
                     ref={(el) => {
-                      // store DOM ref for focus management
+
                       inputsRef.current[i] = el;
-                      // forward ref to RHF controller
+
                       if (typeof field.ref === "function") field.ref(el);
                       else
                         (
@@ -224,7 +215,7 @@ export default function OTPVerificationPage() {
                     }}
                     value={field.value || ""}
                     onChange={(e) => {
-                      field.onChange(e); // keep RHF state in sync
+                      field.onChange(e);
                       handleChange(i, e.target.value);
                     }}
                     onKeyDown={(e) => handleKeyDown(i, e)}

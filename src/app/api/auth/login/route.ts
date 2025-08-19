@@ -13,11 +13,8 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-
-    // If they haven't verified, there will be no User row
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
-      // Optional hint: check if a pending signup exists
       const pending = await prisma.patientSignup.findUnique({
         where: { email },
       });

@@ -1,4 +1,4 @@
-import * as z from "zod";
+import { z } from "zod";
 
 export const prescriptionItemSchema = z.object({
   name: z.string().min(1, "Medicine name is required"),

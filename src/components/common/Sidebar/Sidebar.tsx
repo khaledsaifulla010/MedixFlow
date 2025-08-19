@@ -9,7 +9,6 @@ import {
   Calendar,
   Video,
   FileText,
-  MessageSquare,
   Users,
   Bell,
   CircleUser,

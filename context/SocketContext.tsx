@@ -68,7 +68,7 @@ export const SocketContextProvider = ({
     return (byName || cams[0])?.deviceId || null;
   };
 
-  // ---------- Get Media Stream (prefers integrated cam) ----------
+  // ---------- Get Media Stream (prefers integrated cam) ---------- //
   const getMediaStream = useCallback(
     async (deviceId?: string) => {
       try {
@@ -116,7 +116,7 @@ export const SocketContextProvider = ({
     [activeDeviceId]
   );
 
-  // ---------- Create Peer (REMOTE stream only) ----------
+  // ---------- Create Peer (REMOTE stream only) ---------- //
   const createPeer = useCallback(
     (stream: MediaStream, initiator: boolean, participantUser: SocketUser) => {
       const peerInstance = new Peer({ stream, initiator, trickle: true });
@@ -133,7 +133,7 @@ export const SocketContextProvider = ({
 
       return {
         peerConnection: peerInstance,
-        stream: undefined, // keep undefined until remote arrives
+        stream: undefined,
         participantUser,
         isCaller: initiator,
       };
@@ -141,7 +141,7 @@ export const SocketContextProvider = ({
     []
   );
 
-  // ---------- Handle Call (initiator) ----------
+  // ---------- Handle Call (initiator) ---------- //
   const handleCall = useCallback(
     async (receiver: SocketUser) => {
       if (!currentSocketUser || !socket || !receiver.socketId) return;
@@ -173,7 +173,7 @@ export const SocketContextProvider = ({
     [socket, currentSocketUser, getMediaStream, activeDeviceId, createPeer]
   );
 
-  // ---------- Handle Join Call (callee) ----------
+  // ---------- Handle Join Call (callee) ---------- //
   const handleJoinCall = useCallback(
     async (call: OngoingCall) => {
       const stream = await getMediaStream(activeDeviceId || undefined);
@@ -192,7 +192,6 @@ export const SocketContextProvider = ({
         }
       });
 
-      // Drain any early SDPs
       setPendingSignals((queued) => {
         queued.forEach((sdp) => {
           if (!newPeer.peerConnection.destroyed)
@@ -206,7 +205,7 @@ export const SocketContextProvider = ({
     [socket, getMediaStream, activeDeviceId, createPeer]
   );
 
-  // ---------- WebRTC Signal (queue until peer ready) ----------
+  // ---------- WebRTC Signal (queue until peer ready) ---------- //
   useEffect(() => {
     if (!socket) return;
 
@@ -225,7 +224,7 @@ export const SocketContextProvider = ({
     };
   }, [socket, peer?.peerConnection]);
 
-  // ---------- Socket lifecycle ----------
+  // ---------- Socket lifecycle ---------- //
   useEffect(() => {
     if (!user) return;
     const token = localStorage.getItem("accessToken");
@@ -243,7 +242,7 @@ export const SocketContextProvider = ({
     };
   }, [user]);
 
-  // ---------- Online Users ----------
+  // ---------- Online Users ---------- //
   useEffect(() => {
     if (!socket || !isSocketConnected) return;
     socket.emit("addNewUser", user);
@@ -253,7 +252,7 @@ export const SocketContextProvider = ({
     };
   }, [socket, isSocketConnected, user]);
 
-  // ---------- Incoming Call (ring) ----------
+  // ---------- Incoming Call (ring) ---------- //
   const onInComingCall = useCallback((participants: Participants) => {
     setOngoingCall({ participants, isRinging: true });
   }, []);
@@ -265,7 +264,7 @@ export const SocketContextProvider = ({
     };
   }, [socket, onInComingCall]);
 
-  // ---------- Toggle Camera ----------
+  // ---------- Toggle Camera ---------- //
   const toggleCamera = useCallback(() => {
     const videoTrack = localStream?.getVideoTracks()[0];
     if (videoTrack) {
@@ -277,7 +276,7 @@ export const SocketContextProvider = ({
     }
   }, [localStream, socket, user]);
 
-  // ---------- 🚀 Switch Camera (use replaceTrack) ----------
+  // ---------- Switch Camera (use replaceTrack) ---------- //
   const switchCamera = useCallback(
     async (deviceId: string) => {
       try {
@@ -333,20 +332,15 @@ export const SocketContextProvider = ({
             }
           }
         }
-
-        // 4) Update the local MediaStream CONTENT (keep the same object!)
         if (oldVideoTrack && oldVideoTrack !== newVideoTrack) {
-          stream.removeTrack(oldVideoTrack); // remove from stream
-          oldVideoTrack.stop(); // now safe to stop
+          stream.removeTrack(oldVideoTrack);
+          oldVideoTrack.stop();
         }
-        // Add new if not already present
+
         const hasNew = stream
           .getVideoTracks()
           .some((t) => t.id === newVideoTrack.id);
         if (!hasNew) stream.addTrack(newVideoTrack);
-
-        // 5) Reflect state (keep the SAME stream object reference in state)
-        //    We call setLocalStream with the same instance to keep React in sync.
         setLocalStream(stream);
         setActiveDeviceId(deviceId);
       } catch (err) {
@@ -356,7 +350,7 @@ export const SocketContextProvider = ({
     [localStream, peer]
   );
 
-  // ---------- Screen Sharing ----------
+  // ---------- Screen Sharing ---------- //
   const shareScreen = useCallback(async () => {
     if (!peer || !localStream) return;
     try {
@@ -381,7 +375,6 @@ export const SocketContextProvider = ({
           localStream
         );
 
-        // update local stream to reflect camera restored
         const rebuilt = new MediaStream([
           ...localStream.getAudioTracks(),
           newCameraTrack,
@@ -393,7 +386,7 @@ export const SocketContextProvider = ({
     }
   }, [peer, localStream, activeDeviceId]);
 
-  // ---------- End Call ----------
+  // ---------- End Call ---------- //
   const endCall = useCallback(() => {
     try {
       peer?.peerConnection?.destroy();
@@ -407,7 +400,7 @@ export const SocketContextProvider = ({
     }
   }, [peer, localStream]);
 
-  // ---------- Remote video toggle ----------
+  // ---------- Remote video toggle ---------- //
   useEffect(() => {
     if (!socket) return;
     const handler = (isOn: boolean) => setRemoteVidOn(isOn);
@@ -417,7 +410,7 @@ export const SocketContextProvider = ({
     };
   }, [socket]);
 
-  // ---------- Chat ----------
+  // ---------- Chat ---------- //
   const sendMessage = useCallback(
     (text: string) => {
       if (!socket || !user || !ongoingCall) return;
@@ -476,7 +469,7 @@ export const SocketContextProvider = ({
   );
 };
 
-// ---------- Custom Hook ----------
+// ---------- Custom Hook ---------- //
 export const useSocket = () => {
   const context = useContext(SocketContext);
   if (!context)

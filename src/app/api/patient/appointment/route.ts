@@ -53,8 +53,6 @@ export async function POST(req: Request) {
     });
     if (!patient)
       return NextResponse.json({ error: "Patient not found" }, { status: 400 });
-
-    // Check availability
     const availabilities = await prisma.doctorAvailability.findMany({
       where: {
         doctorId,
@@ -84,8 +82,6 @@ export async function POST(req: Request) {
         { error: "Selected time is outside doctor's availability" },
         { status: 400 }
       );
-
-    // Conflict check
     const conflict = await prisma.appointment.findFirst({
       where: {
         doctorId,
@@ -98,8 +94,6 @@ export async function POST(req: Request) {
         { error: "Selected slot is already booked" },
         { status: 400 }
       );
-
-    // Create appointment and include patient histories
     const appointment = await prisma.appointment.create({
       data: {
         doctorId,
@@ -117,8 +111,6 @@ export async function POST(req: Request) {
         },
       },
     });
-
-    // Send confirmation to patient
     if (appointment.patient?.user?.email) {
       const { htmlMessage, textMessage } = getOnlineAppointmentReminderEmail(
         appointment.doctor.user.name,
@@ -228,8 +220,6 @@ export async function PATCH(req: Request) {
         { status: 400 }
       );
     }
-
-    // Include doctor + patient user so we can email after update
     const appointment = await prisma.appointment.findUnique({
       where: { id: appointmentId },
       include: {
@@ -251,8 +241,6 @@ export async function PATCH(req: Request) {
 
     const start = new Date(startTime);
     const end = new Date(endTime);
-
-    // Availability check
     const availabilities = await prisma.doctorAvailability.findMany({
       where: {
         doctorId: appointment.doctorId,
@@ -277,8 +265,6 @@ export async function PATCH(req: Request) {
         { error: "Outside doctor's availability" },
         { status: 400 }
       );
-
-    // Conflict check excluding current appointment
     const conflict = await prisma.appointment.findFirst({
       where: {
         doctorId: appointment.doctorId,
@@ -292,11 +278,7 @@ export async function PATCH(req: Request) {
         { error: "Slot already booked" },
         { status: 400 }
       );
-
-    // Save previous time for the email (optional)
     const prevStart = appointment.startTime;
-
-    // Update and include doctor/patient again in the response
     const updated = await prisma.appointment.update({
       where: { id: appointment.id },
       data: { startTime: start, endTime: end },
@@ -305,8 +287,6 @@ export async function PATCH(req: Request) {
         patient: { include: { user: true } },
       },
     });
-
-    // Send reschedule email to patient
     if (updated.patient?.user?.email) {
       const { subject, htmlMessage, textMessage } =
         getRescheduleAppointmentEmail(

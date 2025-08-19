@@ -7,7 +7,7 @@ interface AuthResponse {
   accessToken: string;
   refreshToken: string;
 }
-//  Register as a Patient //
+
 interface RegisterPatientResponse {
   message: string;
   email: string;
@@ -15,7 +15,26 @@ interface RegisterPatientResponse {
   expiresInMinutes: number;
 }
 
-// Safe extractor for axios unknown errors
+interface Availability {
+  isRecurring: boolean;
+  dayOfWeek?: number;
+  date?: string;
+  startTime: string;
+  endTime: string;
+}
+
+interface DoctorRegisterData {
+  name: string;
+  email: string;
+  phone: string;
+  dob: string;
+  role: "doctor";
+  password: string;
+  speciality: string;
+  degree: string;
+  availabilities: Availability[];
+}
+
 function getApiErrorMessage(err: unknown): string | undefined {
   if (typeof err === "object" && err !== null) {
     const anyErr = err as { response?: { data?: { message?: string } } };
@@ -45,26 +64,6 @@ export const registerPatient =
     }
   };
 
-// Register as a Doctor //
-interface Availability {
-  isRecurring: boolean;
-  dayOfWeek?: number;
-  date?: string;
-  startTime: string;
-  endTime: string;
-}
-
-interface DoctorRegisterData {
-  name: string;
-  email: string;
-  phone: string;
-  dob: string;
-  role: "doctor";
-  password: string;
-  speciality: string;
-  degree: string;
-  availabilities: Availability[];
-}
 
 export const registerDoctor =
   (doctorData: DoctorRegisterData) =>
@@ -77,16 +76,11 @@ export const registerDoctor =
         doctorData
       );
 
-      // Save tokens
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
-
-      // Set default Authorization header for future requests
       axiosInstance.defaults.headers.common[
         "Authorization"
       ] = `Bearer ${data.accessToken}`;
-
-      // Update Redux state
       dispatch(
         setCredentials({
           user: data.user,
@@ -105,7 +99,6 @@ export const registerDoctor =
     }
   };
 
-// Login All User //
 export const loginUser =
   (userData: { email: string; password: string }) =>
   async (
@@ -142,7 +135,6 @@ export const loginUser =
     }
   };
 
-// Logout All User //
 export const logoutUser = () => async (dispatch: AppDispatch) => {
   try {
     await axiosInstance.post("/auth/logout");

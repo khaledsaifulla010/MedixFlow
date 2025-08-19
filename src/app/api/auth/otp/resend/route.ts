@@ -8,8 +8,6 @@ export async function POST(req: Request) {
     const { email } = await req.json();
     if (!email)
       return NextResponse.json({ message: "Email required" }, { status: 400 });
-
-    // If user already exists, they are verified
     const existingUser = await prisma.user.findUnique({ where: { email } });
     if (existingUser) {
       return NextResponse.json(
@@ -17,8 +15,6 @@ export async function POST(req: Request) {
         { status: 200 }
       );
     }
-
-    // Must be in pending table
     const pending = await prisma.patientSignup.findUnique({ where: { email } });
     if (!pending) {
       return NextResponse.json(
