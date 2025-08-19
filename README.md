@@ -188,6 +188,7 @@ EMAIL_PASS=your_email_password
 FROM_EMAIL=no-reply@yourmail.com
 
 
+---
 ## 📥 Installation
 
 ```bash
@@ -195,6 +196,7 @@ git clone https://github.com/khaledsaifulla010/MedixFlow.git
 cd MedixFlow
 npm install
 ````
+
 <p align="center">
   🛠️ Developed by <strong>Khaled Saifulla</strong> with clean backend architecture ❤️.
 </p>
