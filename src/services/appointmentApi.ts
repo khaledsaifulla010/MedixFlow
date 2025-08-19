@@ -2,7 +2,7 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export interface Doctor {
   id: string;
-  user: { name: string };
+  user: { name: string; email: string; phone: string };
   speciality: string;
   degree: string;
 }
