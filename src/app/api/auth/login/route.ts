@@ -1,3 +1,5 @@
+export const runtime = "nodejs";
+
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
@@ -5,19 +7,30 @@ import jwt from "jsonwebtoken";
 
 export async function POST(req: Request) {
   try {
-    const { email, password } = await req.json();
+    const body = await req.json();
+    const rawEmail = String(body?.email ?? "");
+    const password = String(body?.password ?? "");
 
-    if (!email || !password) {
+    if (!rawEmail || !password) {
       return NextResponse.json(
         { message: "Email and password required" },
         { status: 400 }
       );
     }
-    const user = await prisma.user.findUnique({ where: { email } });
+
+    const email = rawEmail.trim().toLowerCase();
+
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, name: true, email: true, role: true, password: true },
+    });
+
     if (!user) {
       const pending = await prisma.patientSignup.findUnique({
         where: { email },
+        select: { id: true },
       });
+
       if (pending) {
         return NextResponse.json(
           {
@@ -29,33 +42,46 @@ export async function POST(req: Request) {
           { status: 403 }
         );
       }
+
       return NextResponse.json(
         { message: "Invalid email or password" },
         { status: 401 }
       );
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
+    if (!user.password) {
       return NextResponse.json(
         { message: "Invalid email or password" },
         { status: 401 }
       );
     }
 
-    const accessToken = jwt.sign(
-      { id: user.id, role: user.role },
-      process.env.JWT_SECRET!,
-      { expiresIn: "1d" }
-    );
+    const ok = await bcrypt.compare(password, user.password);
+    if (!ok) {
+      return NextResponse.json(
+        { message: "Invalid email or password" },
+        { status: 401 }
+      );
+    }
 
-    const refreshToken = jwt.sign(
-      { id: user.id },
-      process.env.JWT_REFRESH_SECRET!,
-      { expiresIn: "7d" }
-    );
+    const JWT_SECRET = process.env.JWT_SECRET;
+    const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+    if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
+      console.error("Missing JWT secrets in environment variables");
+      return NextResponse.json(
+        { message: "Server configuration error" },
+        { status: 500 }
+      );
+    }
 
-    const response = NextResponse.json({
+    const accessToken = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, {
+      expiresIn: "1d",
+    });
+    const refreshToken = jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, {
+      expiresIn: "7d",
+    });
+
+    const res = NextResponse.json({
       user: {
         id: user.id,
         name: user.name,
@@ -64,7 +90,7 @@ export async function POST(req: Request) {
       },
     });
 
-    response.cookies.set({
+    res.cookies.set({
       name: "accessToken",
       value: accessToken,
       httpOnly: true,
@@ -74,7 +100,7 @@ export async function POST(req: Request) {
       sameSite: "lax",
     });
 
-    response.cookies.set({
+    res.cookies.set({
       name: "refreshToken",
       value: refreshToken,
       httpOnly: true,
@@ -84,9 +110,9 @@ export async function POST(req: Request) {
       sameSite: "lax",
     });
 
-    return response;
-  } catch (error) {
-    console.error(error);
+    return res;
+  } catch (err) {
+    console.error(err);
     return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
 }
