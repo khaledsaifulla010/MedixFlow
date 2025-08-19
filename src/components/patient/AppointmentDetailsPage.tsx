@@ -72,6 +72,8 @@ function buildTimeOptions(start: Date, end: Date, stepMin = 15) {
   return opts;
 }
 
+const toIsoWithZ = (s: string) => (/Z|[+-]\d{2}:\d{2}$/.test(s) ? s : s + "Z");
+
 type BookingCtx = {
   doctorId: string;
   doctorName: string;
@@ -118,6 +120,7 @@ export default function AppointmentDetailsPage() {
     isApptFetching ||
     isCreating ||
     isUpdating;
+
   const checkConflict = (
     start: Date,
     end: Date,
@@ -128,8 +131,8 @@ export default function AppointmentDetailsPage() {
       (ap) =>
         ap.doctorId === doctorId &&
         ap.id !== excludeId &&
-        start < new Date(ap.endTime) &&
-        end > new Date(ap.startTime)
+        start < new Date(toIsoWithZ(ap.endTime)) &&
+        end > new Date(toIsoWithZ(ap.startTime))
     );
     if (conflict) return "Slot already booked";
     return null;
@@ -137,11 +140,11 @@ export default function AppointmentDetailsPage() {
 
   const handleEventDrop = async (info: EventDropArg) => {
     const event = info.event;
-     if (event.id.startsWith("availability-")) {
-       toast.error("You Dont Change the Doctor Time");
-       info.revert();
-       return;
-     }
+    if (event.id.startsWith("availability-")) {
+      toast.error("You Dont Change the Doctor Time");
+      info.revert();
+      return;
+    }
     const start = event.start!;
     const end = event.end!;
     const doctorId = (event.extendedProps as any).doctorId;
@@ -283,6 +286,7 @@ export default function AppointmentDetailsPage() {
       editable: false,
     });
   };
+
   const events = useMemo(() => {
     const today = new Date();
     const out: any[] = [];
@@ -315,8 +319,10 @@ export default function AppointmentDetailsPage() {
           }
         }
       } else if (a.date) {
-        const start = new Date(`${a.date}T${a.startTime}`);
-        const end = new Date(`${a.date}T${a.endTime}`);
+        const [y, m, d] = a.date.split("-").map(Number);
+        const base = new Date(y, (m ?? 1) - 1, d);
+        const start = timeStringToDate(base, a.startTime);
+        const end = timeStringToDate(base, a.endTime);
         out.push({
           id: `availability-${a.id}`,
           title: `${a.doctor.user.name} (${a.doctor.degree}, ${a.doctor.speciality})`,
@@ -339,8 +345,8 @@ export default function AppointmentDetailsPage() {
       out.push({
         id: `appointment-${ap.id}`,
         title: `Booked`,
-        start: ap.startTime,
-        end: ap.endTime,
+        start: toIsoWithZ(ap.startTime),
+        end: toIsoWithZ(ap.endTime),
         backgroundColor: "#EF4444",
         borderColor: "#DC2626",
         textColor: "white",
@@ -412,6 +418,11 @@ export default function AppointmentDetailsPage() {
           editable
           timeZone="local"
           eventDurationEditable
+          eventTimeFormat={{
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: false,
+          }}
           select={handleSelect}
           eventClick={handleEventClick}
           eventDrop={handleEventDrop}
