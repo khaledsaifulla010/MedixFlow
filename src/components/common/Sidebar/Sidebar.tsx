@@ -60,7 +60,7 @@ const menuConfig: Record<"admin" | "doctor" | "patient", MenuSections> = {
         icon: SquareStack,
       },
 
-      { name: "EHR Records", href: "/ehr", icon: FileText },
+      { name: "EHR Records", href: "/dashboard/doctor/ehr-records", icon: FileText },
     ],
     SYSTEM: [],
   },
