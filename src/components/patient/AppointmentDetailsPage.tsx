@@ -13,6 +13,7 @@ import {
 } from "@fullcalendar/core/index.js";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 import {
   useGetAvailabilitiesQuery,
   useGetAppointmentsQuery,
@@ -21,6 +22,7 @@ import {
   Appointment,
   MedicalHistory,
 } from "@/services/appointmentApi";
+
 import {
   Dialog,
   DialogContent,
@@ -87,6 +89,7 @@ export default function AppointmentDetailsPage() {
     isLoading: isAvailLoading,
     isFetching: isAvailFetching,
     error: availError,
+    refetch: refetchAvailabilities,
   } = useGetAvailabilitiesQuery();
 
   const {
@@ -94,6 +97,7 @@ export default function AppointmentDetailsPage() {
     isLoading: isApptLoading,
     isFetching: isApptFetching,
     error: apptError,
+    refetch: refetchAppointments,
   } = useGetAppointmentsQuery();
 
   const [createAppointment, { isLoading: isCreating }] =
@@ -114,35 +118,12 @@ export default function AppointmentDetailsPage() {
     isApptFetching ||
     isCreating ||
     isUpdating;
-
   const checkConflict = (
     start: Date,
     end: Date,
     doctorId: string,
     excludeId?: string
   ) => {
-    const doctorAvail = (availabilities as any[]).filter(
-      (a) => a.doctorId === doctorId
-    );
-    const inAvail = doctorAvail.some((a) => {
-      let availStart: Date, availEnd: Date;
-      if (a.isRecurring) {
-        const today = new Date();
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
-        const targetDay = new Date(startOfWeek);
-        let diff = (a.dayOfWeek ?? 0) - targetDay.getDay();
-        if (diff < 0) diff += 7;
-        targetDay.setDate(targetDay.getDate() + diff);
-        availStart = timeStringToDate(targetDay, a.startTime);
-        availEnd = timeStringToDate(targetDay, a.endTime);
-      } else {
-        availStart = new Date(`${a.date}T${a.startTime}`);
-        availEnd = new Date(`${a.date}T${a.endTime}`);
-      }
-      return start >= availStart && end <= availEnd;
-    });
-    if (!inAvail) return "Outside doctor's availability";
     const conflict = (appointments as Appointment[]).some(
       (ap) =>
         ap.doctorId === doctorId &&
@@ -156,9 +137,15 @@ export default function AppointmentDetailsPage() {
 
   const handleEventDrop = async (info: EventDropArg) => {
     const event = info.event;
+     if (event.id.startsWith("availability-")) {
+       toast.error("You Dont Change the Doctor Time");
+       info.revert();
+       return;
+     }
     const start = event.start!;
     const end = event.end!;
     const doctorId = (event.extendedProps as any).doctorId;
+
     const conflictMsg = checkConflict(
       start,
       end,
@@ -170,6 +157,7 @@ export default function AppointmentDetailsPage() {
       info.revert();
       return;
     }
+
     try {
       if (event.id.startsWith("appointment-")) {
         await updateAppointment({
@@ -177,6 +165,7 @@ export default function AppointmentDetailsPage() {
           startTime: start.toISOString(),
           endTime: end.toISOString(),
         }).unwrap();
+        await refetchAppointments();
         toast.success("Appointment Rescheduled");
       }
     } catch (err: any) {
@@ -189,6 +178,7 @@ export default function AppointmentDetailsPage() {
     const e = info.event;
     const isAppointment = e.id.startsWith("appointment-");
     const isAvailability = e.id.startsWith("availability-");
+
     if (isAvailability) {
       const doctorId = (e.extendedProps as any).doctorId as string;
       const doctorName = e.title as string;
@@ -200,6 +190,7 @@ export default function AppointmentDetailsPage() {
       const defEnd = addMinutes(availStart, 30);
       const defEndClamped = defEnd > availEnd ? availEnd : defEnd;
       const defEndHM = dateToHM(defEndClamped);
+
       setBooking({
         doctorId,
         doctorName,
@@ -213,6 +204,7 @@ export default function AppointmentDetailsPage() {
       setBookingOpen(true);
       return;
     }
+
     if (isAppointment) {
       const ex = e.extendedProps as {
         patientName?: string;
@@ -291,77 +283,80 @@ export default function AppointmentDetailsPage() {
       editable: false,
     });
   };
+  const events = useMemo(() => {
+    const today = new Date();
+    const out: any[] = [];
 
-  const today = new Date();
-  const events: any[] = [];
-
-  (availabilities as any[]).forEach((a) => {
-    if (a.isRecurring) {
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
-      for (let i = 0; i < 7; i++) {
-        const day = new Date(startOfWeek);
-        day.setDate(day.getDate() + i);
-        if (a.dayOfWeek === day.getDay()) {
-          const start = timeStringToDate(day, a.startTime);
-          const end = timeStringToDate(day, a.endTime);
-          events.push({
-            id: `availability-${a.id}-${i}`,
-            title: `${a.doctor.user.name} (${a.doctor.degree}, ${a.doctor.speciality})`,
-            start,
-            end,
-            backgroundColor: "#34D399",
-            borderColor: "#10B981",
-            textColor: "white",
-            editable: true,
-            extendedProps: {
-              speciality: a.doctor.speciality,
-              degree: a.doctor.degree,
-              doctorId: a.doctor.id,
-            },
-          });
+    (availabilities as any[]).forEach((a) => {
+      if (a.isRecurring) {
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        for (let i = 0; i < 7; i++) {
+          const day = new Date(startOfWeek);
+          day.setDate(day.getDate() + i);
+          if (a.dayOfWeek === day.getDay()) {
+            const start = timeStringToDate(day, a.startTime);
+            const end = timeStringToDate(day, a.endTime);
+            out.push({
+              id: `availability-${a.id}-${i}`,
+              title: `${a.doctor.user.name} (${a.doctor.degree}, ${a.doctor.speciality})`,
+              start,
+              end,
+              backgroundColor: "#34D399",
+              borderColor: "#10B981",
+              textColor: "white",
+              editable: true,
+              extendedProps: {
+                speciality: a.doctor.speciality,
+                degree: a.doctor.degree,
+                doctorId: a.doctor.id,
+              },
+            });
+          }
         }
+      } else if (a.date) {
+        const start = new Date(`${a.date}T${a.startTime}`);
+        const end = new Date(`${a.date}T${a.endTime}`);
+        out.push({
+          id: `availability-${a.id}`,
+          title: `${a.doctor.user.name} (${a.doctor.degree}, ${a.doctor.speciality})`,
+          start,
+          end,
+          backgroundColor: "#34D399",
+          borderColor: "#10B981",
+          textColor: "white",
+          editable: true,
+          extendedProps: {
+            speciality: a.doctor.speciality,
+            degree: a.doctor.degree,
+            doctorId: a.doctor.id,
+          },
+        });
       }
-    } else if (a.date) {
-      const start = new Date(`${a.date}T${a.startTime}`);
-      const end = new Date(`${a.date}T${a.endTime}`);
-      events.push({
-        id: `availability-${a.id}`,
-        title: `${a.doctor.user.name} (${a.doctor.degree}, ${a.doctor.speciality})`,
-        start,
-        end,
-        backgroundColor: "#34D399",
-        borderColor: "#10B981",
+    });
+
+    (appointments as Appointment[]).forEach((ap) => {
+      out.push({
+        id: `appointment-${ap.id}`,
+        title: `Booked`,
+        start: ap.startTime,
+        end: ap.endTime,
+        backgroundColor: "#EF4444",
+        borderColor: "#DC2626",
         textColor: "white",
         editable: true,
         extendedProps: {
-          speciality: a.doctor.speciality,
-          degree: a.doctor.degree,
-          doctorId: a.doctor.id,
+          speciality: ap.doctor.speciality,
+          degree: ap.doctor.degree,
+          doctorId: ap.doctorId,
+          patientName: ap.patient?.user?.name ?? "Patient",
+          patientHistories: ap.patient?.histories ?? [],
         },
       });
-    }
-  });
-
-  (appointments as Appointment[]).forEach((ap) => {
-    events.push({
-      id: `appointment-${ap.id}`,
-      title: `Booked`,
-      start: ap.startTime,
-      end: ap.endTime,
-      backgroundColor: "#EF4444",
-      borderColor: "#DC2626",
-      textColor: "white",
-      editable: true,
-      extendedProps: {
-        speciality: ap.doctor.speciality,
-        degree: ap.doctor.degree,
-        doctorId: ap.doctorId,
-        patientName: ap.patient?.user?.name ?? "Patient",
-        patientHistories: ap.patient?.histories ?? [],
-      },
     });
-  });
+
+    return out;
+  }, [availabilities, appointments]);
 
   const isLoadingAny = useMemo(
     () => isBusy || (availError as any) || (apptError as any),
@@ -398,7 +393,6 @@ export default function AppointmentDetailsPage() {
 
   return (
     <div className="mt-4">
-
       <div className="p-4 border-2 rounded-md">
         <FullCalendar
           plugins={[
@@ -438,6 +432,7 @@ export default function AppointmentDetailsPage() {
             );
           }}
         />
+
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -447,6 +442,7 @@ export default function AppointmentDetailsPage() {
             <div className="mt-2">{dialogContent}</div>
           </DialogContent>
         </Dialog>
+
         <Dialog open={bookingOpen} onOpenChange={setBookingOpen}>
           <DialogContent>
             <DialogHeader>
@@ -473,6 +469,7 @@ export default function AppointmentDetailsPage() {
                   </div>
                 </div>
                 <div className="border-b-2"></div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block mb-1 text-sm font-medium">
@@ -516,6 +513,7 @@ export default function AppointmentDetailsPage() {
                       </SelectContent>
                     </Select>
                   </div>
+
                   <div>
                     <label className="block mb-1 text-sm font-medium">
                       End time
@@ -542,6 +540,7 @@ export default function AppointmentDetailsPage() {
                     </Select>
                   </div>
                 </div>
+
                 <div className="flex justify-end gap-2">
                   <Button
                     variant="outline"
@@ -552,8 +551,7 @@ export default function AppointmentDetailsPage() {
                   <Button
                     onClick={async () => {
                       if (!booking) return;
-                      const { doctorId, availStart, availEnd, startHM, endHM } =
-                        booking;
+                      const { doctorId, availStart, startHM, endHM } = booking;
                       if (!startHM || !endHM) {
                         toast.error("Please choose start and end time");
                         return;
@@ -565,14 +563,9 @@ export default function AppointmentDetailsPage() {
                       );
                       const start = timeStringToDate(baseDate, startHM);
                       const end = timeStringToDate(baseDate, endHM);
+
                       if (!(start < end)) {
                         toast.error("End time must be after start time");
-                        return;
-                      }
-                      if (start < availStart || end > availEnd) {
-                        toast.error(
-                          "Selected times must be within availability"
-                        );
                         return;
                       }
                       const conflictMsg = checkConflict(start, end, doctorId);
@@ -580,14 +573,26 @@ export default function AppointmentDetailsPage() {
                         toast.error(conflictMsg);
                         return;
                       }
+
                       try {
-                        await createAppointment({
+                        const res = await createAppointment({
                           doctorId,
                           startTime: start.toISOString(),
                           endTime: end.toISOString(),
                         }).unwrap();
-                        toast.success("Appointment created");
+                        await Promise.all([
+                          refetchAppointments(),
+                          refetchAvailabilities(),
+                        ]);
+
+                        const bookedStart = new Date(res.startTime);
+                        toast.success(
+                          (res as any)?.autoAssigned
+                            ? `Booked for ${bookedStart.toLocaleString()} (moved to next available time)`
+                            : "Appointment created"
+                        );
                         setBookingOpen(false);
+                        setSelectedEvent(null);
                       } catch (err: any) {
                         toast.error(
                           err?.data?.error || "Failed to create appointment"

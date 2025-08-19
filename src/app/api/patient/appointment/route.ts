@@ -25,6 +25,84 @@ async function verifyToken() {
   }
 }
 
+function addMinutes(d: Date, mins: number) {
+  return new Date(d.getTime() + mins * 60000);
+}
+
+type WindowUTC = { start: Date; end: Date };
+
+async function findNextFreeSlotOrNull(params: {
+  doctorId: string;
+  refStart: Date;
+  durationMin: number;
+  searchDays?: number;
+}) {
+  const { doctorId, refStart, durationMin, searchDays = 60 } = params;
+
+  const allAvail = await prisma.doctorAvailability.findMany({
+    where: { doctorId },
+  });
+
+  const futureAppointments = await prisma.appointment.findMany({
+    where: {
+      doctorId,
+      endTime: { gt: refStart },
+    },
+    select: { startTime: true, endTime: true },
+    orderBy: { startTime: "asc" },
+  });
+
+  for (let dayOffset = 0; dayOffset <= searchDays; dayOffset++) {
+    const day = new Date(refStart);
+    day.setHours(0, 0, 0, 0);
+    day.setDate(day.getDate() + dayOffset);
+    const dayStr = formatDate(day);
+    const dow = day.getDay();
+    const dayWindows: WindowUTC[] = [];
+    for (const a of allAvail) {
+      if (a.isRecurring) {
+        if (a.dayOfWeek !== dow) continue;
+        const wStart = new Date(`${dayStr}T${a.startTime}`);
+        const wEnd = new Date(`${dayStr}T${a.endTime}`);
+        dayWindows.push({ start: wStart, end: wEnd });
+      } else if (a.date === dayStr) {
+        const wStart = new Date(`${a.date}T${a.startTime}`);
+        const wEnd = new Date(`${a.date}T${a.endTime}`);
+        dayWindows.push({ start: wStart, end: wEnd });
+      }
+    }
+    if (!dayWindows.length) continue;
+
+    for (const w of dayWindows.sort((x, y) => +x.start - +y.start)) {
+
+      let curStart =
+        refStart >= w.start && refStart <= w.end ? refStart : w.start;
+
+      while (true) {
+        const curEnd = addMinutes(curStart, durationMin);
+        if (curEnd > w.end) break; 
+
+
+        const overlaps = futureAppointments.filter(
+          (ap) => curStart < ap.endTime && curEnd > ap.startTime
+        );
+
+        if (overlaps.length === 0) {
+          return { start: curStart, end: curEnd };
+        }
+        const jumpTo = overlaps.reduce(
+          (mx, ap) => (ap.endTime > mx ? ap.endTime : mx),
+          curStart
+        );
+        if (jumpTo <= curStart) break;
+        curStart = jumpTo;
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function POST(req: Request) {
   try {
     const auth = await verifyToken();
@@ -53,6 +131,8 @@ export async function POST(req: Request) {
     });
     if (!patient)
       return NextResponse.json({ error: "Patient not found" }, { status: 400 });
+
+
     const availabilities = await prisma.doctorAvailability.findMany({
       where: {
         doctorId,
@@ -62,11 +142,56 @@ export async function POST(req: Request) {
         ],
       },
     });
-    if (!availabilities.length)
-      return NextResponse.json(
-        { error: "Doctor not available" },
-        { status: 400 }
-      );
+    if (!availabilities.length) {
+
+      const durationMin = Math.max(15, Math.round((+end - +start) / 60000));
+      const next = await findNextFreeSlotOrNull({
+        doctorId,
+        refStart: start,
+        durationMin,
+      });
+      if (!next) {
+        return NextResponse.json(
+          { error: "Doctor not available" },
+          { status: 400 }
+        );
+      }
+
+      const appointment = await prisma.appointment.create({
+        data: {
+          doctorId,
+          patientId: patient.id,
+          startTime: next.start,
+          endTime: next.end,
+        },
+        include: {
+          doctor: { include: { user: true } },
+          patient: {
+            include: {
+              user: true,
+              histories: true,
+            },
+          },
+        },
+      });
+      if (appointment.patient?.user?.email) {
+        const { htmlMessage, textMessage } = getOnlineAppointmentReminderEmail(
+          appointment.doctor.user.name,
+          appointment.doctor.degree || "",
+          appointment.doctor.speciality || "",
+          appointment.patient.user.name,
+          appointment.startTime
+        );
+
+        await sendEmailReminder(
+          appointment.patient.user.email,
+          "Appointment Confirmation",
+          htmlMessage,
+          textMessage
+        );
+      }
+      return NextResponse.json(appointment);
+    }
 
     const isInsideAvailability = availabilities.some((a) => {
       const availStart = a.isRecurring
@@ -77,11 +202,60 @@ export async function POST(req: Request) {
         : new Date(`${a.date}T${a.endTime}`);
       return start >= availStart && end <= availEnd;
     });
-    if (!isInsideAvailability)
-      return NextResponse.json(
-        { error: "Selected time is outside doctor's availability" },
-        { status: 400 }
-      );
+
+    if (!isInsideAvailability) {
+
+      const durationMin = Math.max(15, Math.round((+end - +start) / 60000));
+      const next = await findNextFreeSlotOrNull({
+        doctorId,
+        refStart: start,
+        durationMin,
+      });
+      if (!next) {
+        return NextResponse.json(
+          { error: "Selected time is outside doctor's availability" },
+          { status: 400 }
+        );
+      }
+
+      const appointment = await prisma.appointment.create({
+        data: {
+          doctorId,
+          patientId: patient.id,
+          startTime: next.start,
+          endTime: next.end,
+        },
+        include: {
+          doctor: { include: { user: true } },
+          patient: {
+            include: {
+              user: true,
+              histories: true,
+            },
+          },
+        },
+      });
+
+      if (appointment.patient?.user?.email) {
+        const { htmlMessage, textMessage } = getOnlineAppointmentReminderEmail(
+          appointment.doctor.user.name,
+          appointment.doctor.degree || "",
+          appointment.doctor.speciality || "",
+          appointment.patient.user.name,
+          appointment.startTime
+        );
+
+        await sendEmailReminder(
+          appointment.patient.user.email,
+          "Appointment Confirmation",
+          htmlMessage,
+          textMessage
+        );
+      }
+
+      return NextResponse.json(appointment);
+    }
+
     const conflict = await prisma.appointment.findFirst({
       where: {
         doctorId,
@@ -94,6 +268,7 @@ export async function POST(req: Request) {
         { error: "Selected slot is already booked" },
         { status: 400 }
       );
+
     const appointment = await prisma.appointment.create({
       data: {
         doctorId,
@@ -106,11 +281,12 @@ export async function POST(req: Request) {
         patient: {
           include: {
             user: true,
-            histories: true, 
+            histories: true,
           },
         },
       },
     });
+
     if (appointment.patient?.user?.email) {
       const { htmlMessage, textMessage } = getOnlineAppointmentReminderEmail(
         appointment.doctor.user.name,
@@ -164,7 +340,7 @@ export async function GET(req: Request) {
           patient: {
             include: {
               user: true,
-              histories: true, 
+              histories: true,
             },
           },
         },
