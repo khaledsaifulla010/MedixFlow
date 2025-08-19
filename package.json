@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node server.js",
     "build": "next build",
+    "prebuild": "prisma generate",
     "start": "NODE_ENV=production node server.js",
     "start:server": "ts-node-esm server.ts",
     "lint": "next lint"
