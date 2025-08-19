@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 
 export async function DELETE(
   _req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const userId = params.id;
+  const { id: userId } = await params;          
 
   if (!userId) {
     return NextResponse.json(
@@ -76,9 +76,7 @@ export async function DELETE(
             where: { id: { in: patientApptIds } },
           });
         }
-        await tx.medicalHistory.deleteMany({
-          where: { patientProfileId: patientId },
-        });
+        await tx.medicalHistory.deleteMany({ where: { patientProfileId: patientId } });
         await tx.patientProfile.delete({ where: { id: patientId } });
       }
 
